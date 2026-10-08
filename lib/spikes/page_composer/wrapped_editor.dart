@@ -82,6 +82,9 @@ class WrappedEditorState extends State<WrappedEditor> with TextInputClient {
   /// The current text and selection. Exposed for tests.
   TextEditingValue get value => _value;
 
+  /// The current layout, for exporting the page.
+  WrapLayout get layout => _currentLayout;
+
   @override
   void initState() {
     super.initState();
