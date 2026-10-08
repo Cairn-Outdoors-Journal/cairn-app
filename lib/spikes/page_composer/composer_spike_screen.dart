@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
 
 import '../../design/tokens.dart';
+import 'pdf_export.dart';
 import 'wrap_layout.dart';
 import 'wrapped_editor.dart';
 
@@ -17,7 +20,8 @@ const sampleText =
 /// A test page for writing that wraps around a taped photo while editing.
 ///
 /// Tap the text to type. Drag the photo to move it and use the arrows to
-/// tilt it; the writing re-flows on every frame.
+/// tilt it; the writing re-flows on every frame. The PDF button exports the
+/// page as it is now and opens the system print preview.
 class ComposerSpikeScreen extends StatefulWidget {
   const ComposerSpikeScreen({super.key});
 
@@ -28,12 +32,20 @@ class ComposerSpikeScreen extends StatefulWidget {
 class _ComposerSpikeScreenState extends State<ComposerSpikeScreen> {
   static const _photoSize = Size(132, 152);
   static const _pagePadding = 20.0;
+  static const _fontSize = 16.0;
+  static const _fontAsset =
+      'assets/fonts/newsreader/Newsreader16pt-Regular.ttf';
 
   Offset? _photoCenter;
   double _angle = 2.5 * math.pi / 180;
   bool _showDebug = false;
   final _stats = ValueNotifier(const EditorStats());
-  Key _editorKey = UniqueKey();
+  GlobalKey<WrappedEditorState> _editorKey = GlobalKey();
+  bool _exporting = false;
+
+  // The page geometry from the last build, for exporting.
+  Size _pageSize = Size.zero;
+  Offset _lastPhotoCenter = Offset.zero;
 
   @override
   void dispose() {
@@ -43,6 +55,37 @@ class _ComposerSpikeScreenState extends State<ComposerSpikeScreen> {
 
   void _tilt(double degrees) =>
       setState(() => _angle += degrees * math.pi / 180);
+
+  Future<void> _exportPdf() async {
+    final editor = _editorKey.currentState;
+    if (editor == null || _exporting) return;
+    // Match the size the text is drawn at, including the phone's text-size
+    // setting, so characters land exactly where the screen put them.
+    final fontSize = MediaQuery.textScalerOf(context).scale(_fontSize);
+    setState(() => _exporting = true);
+    try {
+      final font = await rootBundle.load(_fontAsset);
+      final photo = Exclusion.rotatedRect(
+        center: _lastPhotoCenter,
+        size: _photoSize,
+        angle: _angle,
+      );
+      final bytes = await exportPagePdf(
+        layout: editor.layout,
+        pageSize: _pageSize,
+        font: font,
+        fontSize: fontSize,
+        photos: [photo.polygon],
+        margin: 36,
+      );
+      await Printing.layoutPdf(
+        name: 'Cairn day 47',
+        onLayout: (_) async => bytes,
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,8 +131,13 @@ class _ComposerSpikeScreenState extends State<ComposerSpikeScreen> {
                     selectedIcon: const Icon(Icons.grid_on),
                   ),
                   IconButton(
+                    tooltip: 'Export PDF',
+                    onPressed: _exporting ? null : _exportPdf,
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                  ),
+                  IconButton(
                     tooltip: 'Reset text',
-                    onPressed: () => setState(() => _editorKey = UniqueKey()),
+                    onPressed: () => setState(() => _editorKey = GlobalKey()),
                     icon: const Icon(Icons.restart_alt),
                   ),
                 ],
@@ -129,6 +177,8 @@ class _ComposerSpikeScreenState extends State<ComposerSpikeScreen> {
                     angle: _angle,
                     margin: 10,
                   );
+                  _pageSize = pageSize;
+                  _lastPhotoCenter = center;
 
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(
