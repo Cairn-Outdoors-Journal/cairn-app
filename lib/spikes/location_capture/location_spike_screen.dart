@@ -64,6 +64,23 @@ class _LocationSpikeScreenState extends State<LocationSpikeScreen>
     await _refresh();
   }
 
+  /// Android only shows its "Add tile" dialog when the tile is missing, so
+  /// say what happened instead of leaving the button looking dead.
+  Future<void> _addTile() async {
+    final code = await _channel.invokeMethod<int>('addTile');
+    if (!mounted) return;
+    final message = switch (code) {
+      0 => 'Tile not added.',
+      1 => '"Save point" is already in quick settings.',
+      2 => 'Tile added to quick settings.',
+      -1 =>
+        'Needs Android 13 or later; add the tile by editing quick settings.',
+      _ => 'Android could not add the tile (code $code).',
+    };
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _captureNow() async {
     setState(() => _capturing = true);
     try {
@@ -117,7 +134,7 @@ class _LocationSpikeScreenState extends State<LocationSpikeScreen>
               ),
               if (Platform.isAndroid)
                 OutlinedButton(
-                  onPressed: () => _call('addTile'),
+                  onPressed: _addTile,
                   child: const Text('Add tile'),
                 ),
               FilledButton(
