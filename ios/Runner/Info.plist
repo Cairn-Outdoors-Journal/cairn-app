@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>So the Action button and widget can record where you are while your phone stays in your pocket. Cairn still records a point only when you press something, never continuously.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Cairn saves one location point when you open it or capture something, for your map, elevation and weather. It never tracks you continuously.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
