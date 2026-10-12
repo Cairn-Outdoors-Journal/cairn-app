@@ -5,7 +5,7 @@
 # Stage 5b on iOS: a capture fired from inside Cairn's process, with Cairn on
 # screen or in the background, at each permission level. (Widget, Control
 # Center and Action button taps need a person; see the manual checklist.)
-SIM=53735F1B-BF4B-474E-9EAA-F55DACF88194
+SIM=${SIM:-booted}
 APP=com.cairnjournal.app
 GROUP=$(xcrun simctl get_app_container $SIM $APP groups | awk '/group.com.cairnjournal.app/ {print $2}')
 LOG="$GROUP/captures.jsonl"

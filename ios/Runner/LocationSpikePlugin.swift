@@ -58,7 +58,7 @@ final class LocationSpikePlugin: NSObject, FlutterPlugin {
           UIApplication.shared.applicationState == .active ? "foreground" : "background"
         }
         let outcome = await LocationCapture.capture(source: "app", appState: state)
-        result(outcome)
+        await MainActor.run { result(outcome) }
       }
     case "requestWhileUsing":
       manager.requestWhenInUseAuthorization()

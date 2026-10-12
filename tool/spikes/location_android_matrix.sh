@@ -4,7 +4,7 @@
 # The tap coordinates (158 620) are where the Cairn tile sits in this emulator's quick settings.
 # Stage 5b: what does an Android quick-settings tile tap get at each
 # permission level, with Cairn in the background or not running at all?
-ADB=~/Library/Android/sdk/platform-tools/adb
+ADB=${ADB:-adb}
 PKG=com.cairnjournal.app
 TILE=$PKG/.capture.CaptureTileService
 
@@ -28,7 +28,7 @@ set_permission() {
   esac
 }
 
-# $1 = permission, $2 = background | stopped
+# $1 = permission, $2 = foreground | background | stopped
 scenario() {
   set_permission "$1"
   if [ "$2" = foreground ]; then
