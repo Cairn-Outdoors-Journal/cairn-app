@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.location.LocationRequest
-import android.os.Build
 import android.os.CancellationSignal
 import android.os.Handler
 import android.os.Looper
@@ -100,8 +99,7 @@ object LocationCapture {
 
         val manager = context.getSystemService(LocationManager::class.java)
         val provider = when {
-            Build.VERSION.SDK_INT >= 31 &&
-                manager.allProviders.contains(LocationManager.FUSED_PROVIDER) &&
+            manager.allProviders.contains(LocationManager.FUSED_PROVIDER) &&
                 manager.isProviderEnabled(LocationManager.FUSED_PROVIDER) -> LocationManager.FUSED_PROVIDER
             manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
             else -> LocationManager.NETWORK_PROVIDER
@@ -119,10 +117,6 @@ object LocationCapture {
             finish(if (last != null) "lastKnown" else "timeout", last, null)
         }, TIMEOUT_MS)
 
-        if (Build.VERSION.SDK_INT < 31) {
-            finish("error", null, "spike needs Android 12 (API 31) or later")
-            return
-        }
         // A location point should be precise: ask for high accuracy (GPS) rather
         // than the default balanced quality, which may use only network
         // positioning and return nothing outdoors with no signal.
