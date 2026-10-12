@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What Android backs up (ADR 0010). The journal is encrypted, and its key stays
+     in the Keystore, so after a restore it opens with the recovery key.
+
+     Cloud backup is capped at 25 MB per app and skips an app entirely above that,
+     so it holds the database but not the photos. A phone-to-phone transfer has no
+     cap and carries everything. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="file" path="journal/journal.db" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="journal/" />
+    </device-transfer>
+</data-extraction-rules>
