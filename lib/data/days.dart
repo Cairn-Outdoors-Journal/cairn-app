@@ -20,3 +20,14 @@ int dayOfTrip(String startDay, DateTime today) {
   final day = DateTime.utc(today.year, today.month, today.day);
   return day.difference(start).inDays + 1;
 }
+
+const shortMonths = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// "20 Apr 2026".
+String formatDayKey(String key) {
+  final date = parseDayKey(key);
+  return '${date.day} ${shortMonths[date.month - 1]} ${date.year}';
+}

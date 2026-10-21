@@ -249,11 +249,7 @@ String coverStamp(Notebook notebook, DateTime today) {
   final day = dayOfTrip(start, today);
   if (day >= 1) return 'DAY $day';
   final date = parseDayKey(start);
-  const months = [
-    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', //
-    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
-  ];
-  return 'STARTS ${date.day} ${months[date.month - 1]}';
+  return 'STARTS ${date.day} ${shortMonths[date.month - 1].toUpperCase()}';
 }
 
 /// Colours for the large cover, worked out from the cloth so every cloth
