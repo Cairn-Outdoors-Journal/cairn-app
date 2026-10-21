@@ -70,8 +70,6 @@ class _DataInspectorScreenState extends ConsumerState<DataInspectorScreen> {
             ),
             OutlinedButton(
               onPressed: () {
-                // Also in the debug console, for copying while testing.
-                debugPrint('Recovery key: ${journal.recoveryKey()}');
                 showDialog<void>(
                   context: context,
                   builder: (context) => AlertDialog(
