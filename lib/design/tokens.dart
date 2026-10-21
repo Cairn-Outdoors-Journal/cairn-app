@@ -99,3 +99,15 @@ enum CoverCloth {
 
   final Color color;
 }
+
+/// The three typefaces (ADR 0005), bundled in assets/fonts.
+abstract final class CairnFonts {
+  /// The person's writing, and titles.
+  static const writing = 'Newsreader';
+
+  /// Labels and the interface.
+  static const label = 'Schibsted Grotesk';
+
+  /// Stamped data: dates, counts, coordinates.
+  static const stamp = 'Martian Mono';
+}

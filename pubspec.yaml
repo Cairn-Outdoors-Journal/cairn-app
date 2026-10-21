@@ -33,8 +33,15 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Font licences, shown on the app's licence page (lib/design/font_licences.dart).
+  assets:
+    - assets/fonts/newsreader/OFL.txt
+    - assets/fonts/schibsted-grotesk/OFL.txt
+    - assets/fonts/martian-mono/OFL.txt
+
   # Bundled so the app works offline and printed PDFs use the exact same font
-  # files as the screen. Licence: assets/fonts/newsreader/OFL.txt (SIL OFL 1.1).
+  # files as the screen. All three are SIL OFL 1.1 (ADR 0005): Newsreader for
+  # writing, Schibsted Grotesk for the interface, Martian Mono for stamped data.
   fonts:
     - family: Newsreader
       fonts:
@@ -42,6 +49,18 @@ flutter:
         - asset: assets/fonts/newsreader/Newsreader16pt-Italic.ttf
           style: italic
         - asset: assets/fonts/newsreader/Newsreader16pt-Medium.ttf
+          weight: 500
+    - family: Schibsted Grotesk
+      fonts:
+        - asset: assets/fonts/schibsted-grotesk/SchibstedGrotesk-Regular.ttf
+        - asset: assets/fonts/schibsted-grotesk/SchibstedGrotesk-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/schibsted-grotesk/SchibstedGrotesk-SemiBold.ttf
+          weight: 600
+    - family: Martian Mono
+      fonts:
+        - asset: assets/fonts/martian-mono/MartianMono-Regular.ttf
+        - asset: assets/fonts/martian-mono/MartianMono-Medium.ttf
           weight: 500
 
 # Native build options. The journal database uses SQLite3MultipleCiphers, an

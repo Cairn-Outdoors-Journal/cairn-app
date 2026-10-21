@@ -28,6 +28,7 @@ ThemeData cairnTheme(CairnPalette palette, Brightness brightness) {
     useMaterial3: true,
     brightness: brightness,
     colorScheme: scheme,
+    fontFamily: CairnFonts.label,
     scaffoldBackgroundColor: palette.paper,
     dividerColor: palette.rule,
     splashFactory: NoSplash.splashFactory,
