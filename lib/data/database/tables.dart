@@ -7,6 +7,9 @@ enum RecordType { notebook, page, pageItem, pocketItem, locationPoint, media }
 
 enum ChangeOp { upsert, delete }
 
+/// A notebook for one trip, or for a year of shorter hikes.
+enum NotebookKind { trip, year }
+
 enum PageItemKind { text, photo, sketch }
 
 enum PocketItemKind { text, voice, photo }
@@ -35,12 +38,23 @@ mixin SyncedRecord on Table {
 
 @DataClassName('Notebook')
 class Notebooks extends Table with SyncedRecord {
+  /// Added in schema 2; notebooks from schema 1 become yearly notebooks.
+  TextColumn get kind =>
+      textEnum<NotebookKind>().withDefault(const Constant('year'))();
+
   TextColumn get title => text()();
 
   /// The year on the spine. One notebook per year is the default.
   IntColumn get year => integer()();
 
   TextColumn get cover => textEnum<CoverCloth>()();
+
+  /// Trips only: the trail or route ("Pacific Crest Trail"), the hiker's
+  /// trail name ("Switchback"), and the first day (YYYY-MM-DD), which
+  /// numbers the days.
+  TextColumn get trail => text().nullable()();
+  TextColumn get trailName => text().nullable()();
+  TextColumn get startDay => text().nullable()();
 
   IntColumn get createdAtMs => integer()();
 }

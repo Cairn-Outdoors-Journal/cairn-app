@@ -14,10 +14,16 @@ class NotebookRepository {
 
   CairnDatabase get _db => _writer.db;
 
+  /// A yearly notebook by default; trips add their trail, the hiker's
+  /// trail name and the first day (YYYY-MM-DD).
   Future<Notebook> create({
     required String title,
     required int year,
     required CoverCloth cover,
+    NotebookKind kind = NotebookKind.year,
+    String? trail,
+    String? trailName,
+    String? startDay,
   }) {
     final id = newRecordId();
     return _writer.save(
@@ -27,15 +33,19 @@ class NotebookRepository {
         id: id,
         hlc: hlc,
         deleted: false,
+        kind: kind,
         title: title,
         year: year,
         cover: cover,
+        trail: trail,
+        trailName: trailName,
+        startDay: startDay,
         createdAtMs: _writer.clock.nowMs(),
       ),
     );
   }
 
-  /// Saves edits made with `copyWith` (title, cover).
+  /// Saves edits made with `copyWith`: title, cover, trip details.
   Future<Notebook> update(Notebook notebook) => _writer.save(
     RecordType.notebook,
     _db.notebooks,

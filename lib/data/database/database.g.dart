@@ -42,6 +42,16 @@ class $NotebooksTable extends Notebooks
     ),
     defaultValue: const Constant(false),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<NotebookKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('year'),
+      ).withConverter<NotebookKind>($NotebooksTable.$converterkind);
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -69,6 +79,37 @@ class $NotebooksTable extends Notebooks
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<CoverCloth>($NotebooksTable.$convertercover);
+  static const VerificationMeta _trailMeta = const VerificationMeta('trail');
+  @override
+  late final GeneratedColumn<String> trail = GeneratedColumn<String>(
+    'trail',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trailNameMeta = const VerificationMeta(
+    'trailName',
+  );
+  @override
+  late final GeneratedColumn<String> trailName = GeneratedColumn<String>(
+    'trail_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startDayMeta = const VerificationMeta(
+    'startDay',
+  );
+  @override
+  late final GeneratedColumn<String> startDay = GeneratedColumn<String>(
+    'start_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
     'createdAtMs',
   );
@@ -85,9 +126,13 @@ class $NotebooksTable extends Notebooks
     id,
     hlc,
     deleted,
+    kind,
     title,
     year,
     cover,
+    trail,
+    trailName,
+    startDay,
     createdAtMs,
   ];
   @override
@@ -137,6 +182,24 @@ class $NotebooksTable extends Notebooks
     } else if (isInserting) {
       context.missing(_yearMeta);
     }
+    if (data.containsKey('trail')) {
+      context.handle(
+        _trailMeta,
+        trail.isAcceptableOrUnknown(data['trail']!, _trailMeta),
+      );
+    }
+    if (data.containsKey('trail_name')) {
+      context.handle(
+        _trailNameMeta,
+        trailName.isAcceptableOrUnknown(data['trail_name']!, _trailNameMeta),
+      );
+    }
+    if (data.containsKey('start_day')) {
+      context.handle(
+        _startDayMeta,
+        startDay.isAcceptableOrUnknown(data['start_day']!, _startDayMeta),
+      );
+    }
     if (data.containsKey('created_at_ms')) {
       context.handle(
         _createdAtMsMeta,
@@ -169,6 +232,12 @@ class $NotebooksTable extends Notebooks
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
       )!,
+      kind: $NotebooksTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -183,6 +252,18 @@ class $NotebooksTable extends Notebooks
           data['${effectivePrefix}cover'],
         )!,
       ),
+      trail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trail'],
+      ),
+      trailName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trail_name'],
+      ),
+      startDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}start_day'],
+      ),
       createdAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at_ms'],
@@ -195,6 +276,8 @@ class $NotebooksTable extends Notebooks
     return $NotebooksTable(attachedDatabase, alias);
   }
 
+  static JsonTypeConverter2<NotebookKind, String, String> $converterkind =
+      const EnumNameConverter<NotebookKind>(NotebookKind.values);
   static JsonTypeConverter2<CoverCloth, String, String> $convertercover =
       const EnumNameConverter<CoverCloth>(CoverCloth.values);
 }
@@ -208,19 +291,33 @@ class Notebook extends DataClass implements Insertable<Notebook> {
 
   /// Deleted records stay as tombstones so the deletion can sync.
   final bool deleted;
+
+  /// Added in schema 2; notebooks from schema 1 become yearly notebooks.
+  final NotebookKind kind;
   final String title;
 
   /// The year on the spine. One notebook per year is the default.
   final int year;
   final CoverCloth cover;
+
+  /// Trips only: the trail or route ("Pacific Crest Trail"), the hiker's
+  /// trail name ("Switchback"), and the first day (YYYY-MM-DD), which
+  /// numbers the days.
+  final String? trail;
+  final String? trailName;
+  final String? startDay;
   final int createdAtMs;
   const Notebook({
     required this.id,
     required this.hlc,
     required this.deleted,
+    required this.kind,
     required this.title,
     required this.year,
     required this.cover,
+    this.trail,
+    this.trailName,
+    this.startDay,
     required this.createdAtMs,
   });
   @override
@@ -229,12 +326,26 @@ class Notebook extends DataClass implements Insertable<Notebook> {
     map['id'] = Variable<String>(id);
     map['hlc'] = Variable<String>(hlc);
     map['deleted'] = Variable<bool>(deleted);
+    {
+      map['kind'] = Variable<String>(
+        $NotebooksTable.$converterkind.toSql(kind),
+      );
+    }
     map['title'] = Variable<String>(title);
     map['year'] = Variable<int>(year);
     {
       map['cover'] = Variable<String>(
         $NotebooksTable.$convertercover.toSql(cover),
       );
+    }
+    if (!nullToAbsent || trail != null) {
+      map['trail'] = Variable<String>(trail);
+    }
+    if (!nullToAbsent || trailName != null) {
+      map['trail_name'] = Variable<String>(trailName);
+    }
+    if (!nullToAbsent || startDay != null) {
+      map['start_day'] = Variable<String>(startDay);
     }
     map['created_at_ms'] = Variable<int>(createdAtMs);
     return map;
@@ -245,9 +356,19 @@ class Notebook extends DataClass implements Insertable<Notebook> {
       id: Value(id),
       hlc: Value(hlc),
       deleted: Value(deleted),
+      kind: Value(kind),
       title: Value(title),
       year: Value(year),
       cover: Value(cover),
+      trail: trail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trail),
+      trailName: trailName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trailName),
+      startDay: startDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startDay),
       createdAtMs: Value(createdAtMs),
     );
   }
@@ -261,11 +382,17 @@ class Notebook extends DataClass implements Insertable<Notebook> {
       id: serializer.fromJson<String>(json['id']),
       hlc: serializer.fromJson<String>(json['hlc']),
       deleted: serializer.fromJson<bool>(json['deleted']),
+      kind: $NotebooksTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
       title: serializer.fromJson<String>(json['title']),
       year: serializer.fromJson<int>(json['year']),
       cover: $NotebooksTable.$convertercover.fromJson(
         serializer.fromJson<String>(json['cover']),
       ),
+      trail: serializer.fromJson<String?>(json['trail']),
+      trailName: serializer.fromJson<String?>(json['trailName']),
+      startDay: serializer.fromJson<String?>(json['startDay']),
       createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
     );
   }
@@ -276,11 +403,17 @@ class Notebook extends DataClass implements Insertable<Notebook> {
       'id': serializer.toJson<String>(id),
       'hlc': serializer.toJson<String>(hlc),
       'deleted': serializer.toJson<bool>(deleted),
+      'kind': serializer.toJson<String>(
+        $NotebooksTable.$converterkind.toJson(kind),
+      ),
       'title': serializer.toJson<String>(title),
       'year': serializer.toJson<int>(year),
       'cover': serializer.toJson<String>(
         $NotebooksTable.$convertercover.toJson(cover),
       ),
+      'trail': serializer.toJson<String?>(trail),
+      'trailName': serializer.toJson<String?>(trailName),
+      'startDay': serializer.toJson<String?>(startDay),
       'createdAtMs': serializer.toJson<int>(createdAtMs),
     };
   }
@@ -289,17 +422,25 @@ class Notebook extends DataClass implements Insertable<Notebook> {
     String? id,
     String? hlc,
     bool? deleted,
+    NotebookKind? kind,
     String? title,
     int? year,
     CoverCloth? cover,
+    Value<String?> trail = const Value.absent(),
+    Value<String?> trailName = const Value.absent(),
+    Value<String?> startDay = const Value.absent(),
     int? createdAtMs,
   }) => Notebook(
     id: id ?? this.id,
     hlc: hlc ?? this.hlc,
     deleted: deleted ?? this.deleted,
+    kind: kind ?? this.kind,
     title: title ?? this.title,
     year: year ?? this.year,
     cover: cover ?? this.cover,
+    trail: trail.present ? trail.value : this.trail,
+    trailName: trailName.present ? trailName.value : this.trailName,
+    startDay: startDay.present ? startDay.value : this.startDay,
     createdAtMs: createdAtMs ?? this.createdAtMs,
   );
   Notebook copyWithCompanion(NotebooksCompanion data) {
@@ -307,9 +448,13 @@ class Notebook extends DataClass implements Insertable<Notebook> {
       id: data.id.present ? data.id.value : this.id,
       hlc: data.hlc.present ? data.hlc.value : this.hlc,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      kind: data.kind.present ? data.kind.value : this.kind,
       title: data.title.present ? data.title.value : this.title,
       year: data.year.present ? data.year.value : this.year,
       cover: data.cover.present ? data.cover.value : this.cover,
+      trail: data.trail.present ? data.trail.value : this.trail,
+      trailName: data.trailName.present ? data.trailName.value : this.trailName,
+      startDay: data.startDay.present ? data.startDay.value : this.startDay,
       createdAtMs: data.createdAtMs.present
           ? data.createdAtMs.value
           : this.createdAtMs,
@@ -322,17 +467,32 @@ class Notebook extends DataClass implements Insertable<Notebook> {
           ..write('id: $id, ')
           ..write('hlc: $hlc, ')
           ..write('deleted: $deleted, ')
+          ..write('kind: $kind, ')
           ..write('title: $title, ')
           ..write('year: $year, ')
           ..write('cover: $cover, ')
+          ..write('trail: $trail, ')
+          ..write('trailName: $trailName, ')
+          ..write('startDay: $startDay, ')
           ..write('createdAtMs: $createdAtMs')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, hlc, deleted, title, year, cover, createdAtMs);
+  int get hashCode => Object.hash(
+    id,
+    hlc,
+    deleted,
+    kind,
+    title,
+    year,
+    cover,
+    trail,
+    trailName,
+    startDay,
+    createdAtMs,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -340,9 +500,13 @@ class Notebook extends DataClass implements Insertable<Notebook> {
           other.id == this.id &&
           other.hlc == this.hlc &&
           other.deleted == this.deleted &&
+          other.kind == this.kind &&
           other.title == this.title &&
           other.year == this.year &&
           other.cover == this.cover &&
+          other.trail == this.trail &&
+          other.trailName == this.trailName &&
+          other.startDay == this.startDay &&
           other.createdAtMs == this.createdAtMs);
 }
 
@@ -350,18 +514,26 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
   final Value<String> id;
   final Value<String> hlc;
   final Value<bool> deleted;
+  final Value<NotebookKind> kind;
   final Value<String> title;
   final Value<int> year;
   final Value<CoverCloth> cover;
+  final Value<String?> trail;
+  final Value<String?> trailName;
+  final Value<String?> startDay;
   final Value<int> createdAtMs;
   final Value<int> rowid;
   const NotebooksCompanion({
     this.id = const Value.absent(),
     this.hlc = const Value.absent(),
     this.deleted = const Value.absent(),
+    this.kind = const Value.absent(),
     this.title = const Value.absent(),
     this.year = const Value.absent(),
     this.cover = const Value.absent(),
+    this.trail = const Value.absent(),
+    this.trailName = const Value.absent(),
+    this.startDay = const Value.absent(),
     this.createdAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -369,9 +541,13 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
     required String id,
     required String hlc,
     this.deleted = const Value.absent(),
+    this.kind = const Value.absent(),
     required String title,
     required int year,
     required CoverCloth cover,
+    this.trail = const Value.absent(),
+    this.trailName = const Value.absent(),
+    this.startDay = const Value.absent(),
     required int createdAtMs,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -384,9 +560,13 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
     Expression<String>? id,
     Expression<String>? hlc,
     Expression<bool>? deleted,
+    Expression<String>? kind,
     Expression<String>? title,
     Expression<int>? year,
     Expression<String>? cover,
+    Expression<String>? trail,
+    Expression<String>? trailName,
+    Expression<String>? startDay,
     Expression<int>? createdAtMs,
     Expression<int>? rowid,
   }) {
@@ -394,9 +574,13 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
       if (id != null) 'id': id,
       if (hlc != null) 'hlc': hlc,
       if (deleted != null) 'deleted': deleted,
+      if (kind != null) 'kind': kind,
       if (title != null) 'title': title,
       if (year != null) 'year': year,
       if (cover != null) 'cover': cover,
+      if (trail != null) 'trail': trail,
+      if (trailName != null) 'trail_name': trailName,
+      if (startDay != null) 'start_day': startDay,
       if (createdAtMs != null) 'created_at_ms': createdAtMs,
       if (rowid != null) 'rowid': rowid,
     });
@@ -406,9 +590,13 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
     Value<String>? id,
     Value<String>? hlc,
     Value<bool>? deleted,
+    Value<NotebookKind>? kind,
     Value<String>? title,
     Value<int>? year,
     Value<CoverCloth>? cover,
+    Value<String?>? trail,
+    Value<String?>? trailName,
+    Value<String?>? startDay,
     Value<int>? createdAtMs,
     Value<int>? rowid,
   }) {
@@ -416,9 +604,13 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
       id: id ?? this.id,
       hlc: hlc ?? this.hlc,
       deleted: deleted ?? this.deleted,
+      kind: kind ?? this.kind,
       title: title ?? this.title,
       year: year ?? this.year,
       cover: cover ?? this.cover,
+      trail: trail ?? this.trail,
+      trailName: trailName ?? this.trailName,
+      startDay: startDay ?? this.startDay,
       createdAtMs: createdAtMs ?? this.createdAtMs,
       rowid: rowid ?? this.rowid,
     );
@@ -436,6 +628,11 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $NotebooksTable.$converterkind.toSql(kind.value),
+      );
+    }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
     }
@@ -446,6 +643,15 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
       map['cover'] = Variable<String>(
         $NotebooksTable.$convertercover.toSql(cover.value),
       );
+    }
+    if (trail.present) {
+      map['trail'] = Variable<String>(trail.value);
+    }
+    if (trailName.present) {
+      map['trail_name'] = Variable<String>(trailName.value);
+    }
+    if (startDay.present) {
+      map['start_day'] = Variable<String>(startDay.value);
     }
     if (createdAtMs.present) {
       map['created_at_ms'] = Variable<int>(createdAtMs.value);
@@ -462,9 +668,13 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
           ..write('id: $id, ')
           ..write('hlc: $hlc, ')
           ..write('deleted: $deleted, ')
+          ..write('kind: $kind, ')
           ..write('title: $title, ')
           ..write('year: $year, ')
           ..write('cover: $cover, ')
+          ..write('trail: $trail, ')
+          ..write('trailName: $trailName, ')
+          ..write('startDay: $startDay, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4602,9 +4812,13 @@ typedef $$NotebooksTableCreateCompanionBuilder = NotebooksCompanion Function({
   required String id,
   required String hlc,
   Value<bool> deleted,
+  Value<NotebookKind> kind,
   required String title,
   required int year,
   required CoverCloth cover,
+  Value<String?> trail,
+  Value<String?> trailName,
+  Value<String?> startDay,
   required int createdAtMs,
   Value<int> rowid,
 });
@@ -4612,9 +4826,13 @@ typedef $$NotebooksTableUpdateCompanionBuilder = NotebooksCompanion Function({
   Value<String> id,
   Value<String> hlc,
   Value<bool> deleted,
+  Value<NotebookKind> kind,
   Value<String> title,
   Value<int> year,
   Value<CoverCloth> cover,
+  Value<String?> trail,
+  Value<String?> trailName,
+  Value<String?> startDay,
   Value<int> createdAtMs,
   Value<int> rowid,
 });
@@ -4643,6 +4861,12 @@ class $$NotebooksTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnWithTypeConverterFilters<NotebookKind, NotebookKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
   ColumnFilters<String> get title => $composableBuilder(
     column: $table.title,
     builder: (column) => ColumnFilters(column),
@@ -4658,6 +4882,21 @@ class $$NotebooksTableFilterComposer
         column: $table.cover,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
+
+  ColumnFilters<String> get trail => $composableBuilder(
+    column: $table.trail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trailName => $composableBuilder(
+    column: $table.trailName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get startDay => $composableBuilder(
+    column: $table.startDay,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<int> get createdAtMs => $composableBuilder(
     column: $table.createdAtMs,
@@ -4689,6 +4928,11 @@ class $$NotebooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get title => $composableBuilder(
     column: $table.title,
     builder: (column) => ColumnOrderings(column),
@@ -4701,6 +4945,21 @@ class $$NotebooksTableOrderingComposer
 
   ColumnOrderings<String> get cover => $composableBuilder(
     column: $table.cover,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trail => $composableBuilder(
+    column: $table.trail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trailName => $composableBuilder(
+    column: $table.trailName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startDay => $composableBuilder(
+    column: $table.startDay,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4728,6 +4987,9 @@ class $$NotebooksTableAnnotationComposer
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<NotebookKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
 
@@ -4736,6 +4998,15 @@ class $$NotebooksTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<CoverCloth, String> get cover =>
       $composableBuilder(column: $table.cover, builder: (column) => column);
+
+  GeneratedColumn<String> get trail =>
+      $composableBuilder(column: $table.trail, builder: (column) => column);
+
+  GeneratedColumn<String> get trailName =>
+      $composableBuilder(column: $table.trailName, builder: (column) => column);
+
+  GeneratedColumn<String> get startDay =>
+      $composableBuilder(column: $table.startDay, builder: (column) => column);
 
   GeneratedColumn<int> get createdAtMs => $composableBuilder(
     column: $table.createdAtMs,
@@ -4777,18 +5048,26 @@ class $$NotebooksTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> hlc = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
+                Value<NotebookKind> kind = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<int> year = const Value.absent(),
                 Value<CoverCloth> cover = const Value.absent(),
+                Value<String?> trail = const Value.absent(),
+                Value<String?> trailName = const Value.absent(),
+                Value<String?> startDay = const Value.absent(),
                 Value<int> createdAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NotebooksCompanion(
                 id: id,
                 hlc: hlc,
                 deleted: deleted,
+                kind: kind,
                 title: title,
                 year: year,
                 cover: cover,
+                trail: trail,
+                trailName: trailName,
+                startDay: startDay,
                 createdAtMs: createdAtMs,
                 rowid: rowid,
               ),
@@ -4797,18 +5076,26 @@ class $$NotebooksTableTableManager
                 required String id,
                 required String hlc,
                 Value<bool> deleted = const Value.absent(),
+                Value<NotebookKind> kind = const Value.absent(),
                 required String title,
                 required int year,
                 required CoverCloth cover,
+                Value<String?> trail = const Value.absent(),
+                Value<String?> trailName = const Value.absent(),
+                Value<String?> startDay = const Value.absent(),
                 required int createdAtMs,
                 Value<int> rowid = const Value.absent(),
               }) => NotebooksCompanion.insert(
                 id: id,
                 hlc: hlc,
                 deleted: deleted,
+                kind: kind,
                 title: title,
                 year: year,
                 cover: cover,
+                trail: trail,
+                trailName: trailName,
+                startDay: startDay,
                 createdAtMs: createdAtMs,
                 rowid: rowid,
               ),
