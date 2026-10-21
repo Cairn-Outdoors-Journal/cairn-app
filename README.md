@@ -26,6 +26,7 @@ Running on devices and simulators also needs Xcode (iOS) and Android Studio (And
 | Regenerate database code | `dart run build_runner build` |
 | Snapshot the schema after a change | `dart run drift_dev make-migrations` |
 | Inspect stored data on a device | `flutter run -t lib/dev/data_inspector/main.dart` |
+| Try the shelf with sample notebooks | `flutter run -t lib/dev/sample_shelf/main.dart` |
 
 Android needs Android 12 (API 31) or later.
 
@@ -41,7 +42,10 @@ lib/
   app.dart             MaterialApp, themes, router
   router.dart          routes
   design/              colour tokens (ADR 0005) and themes
-  features/            one folder per screen or flow (shelf/, notebook/, page/, pocket/, ...)
+  features/            one folder per screen or flow
+    shelf/             the bookshelf: covers, new/edit sheet, long-press actions
+    notebook/          an open notebook (placeholder until stage 7b)
+    unlock/            unlocking a restored journal with the recovery key
   data/                the journal on the phone (ADR 0010)
     journal.dart       opens everything; screens use its repositories
     database/          drift tables and the encrypted SQLite database
@@ -49,9 +53,9 @@ lib/
     media/             photos and other files, encrypted with libsodium
     keys/              master key in the Keychain / Keystore, recovery key, subkeys
     sync/              hybrid logical clock and the change log
-  dev/                 developer tools (data inspector)
+  dev/                 developer tools (data inspector, sample shelf)
   spikes/              test builds from stage 5
-drift_schemas/         schema snapshots for migration tests
+drift_schemas/         schema snapshots; migration tests in test/drift/
 ```
 
 Everything in `data/` is encrypted on the phone: the database with SQLite3MultipleCiphers (set in
