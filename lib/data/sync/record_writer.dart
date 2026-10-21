@@ -9,38 +9,48 @@ import 'hlc.dart';
 /// Hands out HLC stamps for this device. The last stamp is saved with each
 /// change, so stamps keep increasing across restarts.
 class JournalClock {
-  JournalClock._(this._db, this._last, this._now);
+  JournalClock._(this._db, this.deviceId, this._last, this._now);
 
   static const _deviceIdKey = 'device_id';
   static const _hlcKey = 'hlc';
 
   /// Loads the clock, creating this device's id on first use.
+  ///
+  /// The device id belongs to this install, not to the journal: pass
+  /// [newDevice] for a journal restored from a backup or transferred from
+  /// another phone, which may still be writing with the old id.
   static Future<JournalClock> load(
     CairnDatabase db, {
     int Function()? now,
+    bool newDevice = false,
   }) async {
     final rows = await db.select(db.meta).get();
     final meta = {for (final row in rows) row.key: row.value};
     var deviceId = meta[_deviceIdKey];
-    if (deviceId == null) {
+    if (deviceId == null || newDevice) {
       deviceId = newDeviceId();
       await db
           .into(db.meta)
-          .insert(MetaCompanion.insert(key: _deviceIdKey, value: deviceId));
+          .insertOnConflictUpdate(
+            MetaCompanion.insert(key: _deviceIdKey, value: deviceId),
+          );
     }
+    // Stamps keep counting up from the journal's last one, under this
+    // device's id.
     final last = meta[_hlcKey];
+    final previous = last == null ? null : Hlc.parse(last);
     return JournalClock._(
       db,
-      last == null ? Hlc.zero(deviceId) : Hlc.parse(last),
+      deviceId,
+      Hlc(previous?.wallMs ?? 0, previous?.counter ?? 0, deviceId),
       now ?? () => DateTime.now().millisecondsSinceEpoch,
     );
   }
 
   final CairnDatabase _db;
   final int Function() _now;
+  final String deviceId;
   Hlc _last;
-
-  String get deviceId => _last.deviceId;
 
   /// Wall-clock time for record timestamps such as `createdAtMs`.
   int nowMs() => _now();

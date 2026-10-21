@@ -48,7 +48,7 @@ class Journal {
       vault,
       journalExists: _databaseFile(root).existsSync(),
     );
-    return _open(root, sodium, keys, now);
+    return _open(root, sodium, keys, now, newDevice: false);
   }
 
   /// Opens a journal restored from a backup with the person's recovery key,
@@ -65,7 +65,9 @@ class Journal {
     final keys = LocalKeys.fromRecoveryKey(sodium, recoveryKey);
     final Journal journal;
     try {
-      journal = await _open(root, sodium, keys, now);
+      // Restoring means another phone, or a wiped one: give it its own
+      // device id so it never writes as the phone the journal came from.
+      journal = await _open(root, sodium, keys, now, newDevice: true);
     } on Exception {
       keys.dispose();
       throw const WrongRecoveryKey();
@@ -81,14 +83,15 @@ class Journal {
     Directory root,
     Sodium sodium,
     LocalKeys keys,
-    int Function()? now,
-  ) async {
+    int Function()? now, {
+    required bool newDevice,
+  }) async {
     final database = CairnDatabase(
       openEncryptedDatabase(_databaseFile(root), keys.databaseKeyHex()),
     );
     final JournalClock clock;
     try {
-      clock = await JournalClock.load(database, now: now);
+      clock = await JournalClock.load(database, now: now, newDevice: newDevice);
     } catch (_) {
       await database.close();
       rethrow;

@@ -64,6 +64,7 @@ void main() {
           cover: CoverCloth.ochre,
         );
         final recoveryKey = t.journal.recoveryKey();
+        final oldDeviceId = t.journal.clock.deviceId;
         await t.journal.close();
         // A reset phone restored from backup: files back, key gone.
         t.vault.key = null;
@@ -80,9 +81,21 @@ void main() {
           (await t.journal.notebooks.find(notebook.id))?.title,
           'Arizona Trail',
         );
-        // The key is kept, so the next launch opens without asking.
+        // A restored journal writes as a new device, so it never collides
+        // with the phone it came from.
+        final newDeviceId = t.journal.clock.deviceId;
+        expect(newDeviceId, isNot(oldDeviceId));
+        final edited = await t.journal.notebooks.create(
+          title: 'After restore',
+          year: 2026,
+          cover: CoverCloth.ochre,
+        );
+        expect(Hlc.parse(edited.hlc).deviceId, newDeviceId);
+        // The key and the new id are kept, so the next launch opens without
+        // asking, as the same device.
         await t.reopen();
         expect(t.journal.recoveryKey(), recoveryKey);
+        expect(t.journal.clock.deviceId, newDeviceId);
       },
     );
 
