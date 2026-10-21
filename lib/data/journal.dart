@@ -35,8 +35,9 @@ class Journal {
   });
 
   /// Opens the journal in [root], creating it on first use. Throws
-  /// [JournalKeyMissing] when the journal is here but its key isn't; then
-  /// ask for the recovery key and call [restore].
+  /// [JournalKeyMissing] when the journal is here but the key on this phone
+  /// is missing or doesn't open it; then ask for the recovery key and call
+  /// [restore].
   static Future<Journal> open({
     required Directory root,
     required Sodium sodium,
@@ -48,7 +49,15 @@ class Journal {
       vault,
       journalExists: _databaseFile(root).existsSync(),
     );
-    return _open(root, sodium, keys, now, newDevice: false);
+    try {
+      return await _open(root, sodium, keys, now, newDevice: false);
+    } catch (error) {
+      keys.dispose();
+      // For example, an iOS Keychain entry left from an earlier install,
+      // next to a journal restored from a different backup.
+      if (isWrongDatabaseKey(error)) throw const JournalKeyMissing();
+      rethrow;
+    }
   }
 
   /// Opens a journal restored from a backup with the person's recovery key,
@@ -68,9 +77,12 @@ class Journal {
       // Restoring means another phone, or a wiped one: give it its own
       // device id so it never writes as the phone the journal came from.
       journal = await _open(root, sodium, keys, now, newDevice: true);
-    } on Exception {
+    } catch (error) {
       keys.dispose();
-      throw const WrongRecoveryKey();
+      // Anything else (a damaged file, a full disk) is not about the key,
+      // and asking the person to retype it would not help.
+      if (isWrongDatabaseKey(error)) throw const WrongRecoveryKey();
+      rethrow;
     }
     await keys.save(vault);
     return journal;
@@ -89,37 +101,40 @@ class Journal {
     final database = CairnDatabase(
       openEncryptedDatabase(_databaseFile(root), keys.databaseKeyHex()),
     );
-    final JournalClock clock;
     try {
-      clock = await JournalClock.load(database, now: now, newDevice: newDevice);
+      final clock = await JournalClock.load(
+        database,
+        now: now,
+        newDevice: newDevice,
+      );
+      final writer = RecordWriter(database, clock);
+      final mediaDir = Directory(p.join(root.path, 'media'));
+      await mediaDir.create(recursive: true);
+      final media = MediaStore(
+        directory: mediaDir,
+        sodium: sodium,
+        key: keys.mediaKey(),
+        writer: writer,
+      );
+      // Catches files left by a delete that was interrupted.
+      await media.removeDeletedFiles();
+      final removeFiles = media.removeDeletedFiles;
+      final items = PageItemRepository(writer, removeFiles);
+      return Journal._(
+        database: database,
+        clock: clock,
+        notebooks: NotebookRepository(writer, removeFiles),
+        pages: PageRepository(writer, removeFiles),
+        items: items,
+        pocket: PocketRepository(writer, items, removeFiles),
+        points: LocationPointRepository(writer),
+        media: media,
+        keys: keys,
+      );
     } catch (_) {
       await database.close();
       rethrow;
     }
-    final writer = RecordWriter(database, clock);
-    final mediaDir = Directory(p.join(root.path, 'media'));
-    await mediaDir.create(recursive: true);
-    final media = MediaStore(
-      directory: mediaDir,
-      sodium: sodium,
-      key: keys.mediaKey(),
-      writer: writer,
-    );
-    // Catches files left by a delete that was interrupted.
-    await media.removeDeletedFiles();
-    final removeFiles = media.removeDeletedFiles;
-    final items = PageItemRepository(writer, removeFiles);
-    return Journal._(
-      database: database,
-      clock: clock,
-      notebooks: NotebookRepository(writer, removeFiles),
-      pages: PageRepository(writer, removeFiles),
-      items: items,
-      pocket: PocketRepository(writer, items, removeFiles),
-      points: LocationPointRepository(writer),
-      media: media,
-      keys: keys,
-    );
   }
 
   final CairnDatabase database;

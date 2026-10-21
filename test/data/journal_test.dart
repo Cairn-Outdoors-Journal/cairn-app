@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'dart:math';
 
@@ -42,13 +43,14 @@ void main() {
       expect((await journal.notebooks.find(created.id))?.title, 'PCT');
     });
 
-    test('a different key cannot open the journal', () async {
+    test('a key that does not open the journal asks for the recovery '
+        'key', () async {
       final t = await TestJournal.create();
       await t.journal.close();
       t.vault.key = Uint8List.fromList(
         List.generate(32, (_) => Random.secure().nextInt(256)),
       );
-      await expectLater(t.open(), throwsA(anything));
+      await expectLater(t.open(), throwsA(isA<JournalKeyMissing>()));
       // Leave a working journal for the tear-down to close.
       t.vault.key = null;
       await t.databaseFile.delete();
@@ -97,6 +99,35 @@ void main() {
         await t.reopen();
         expect(t.journal.recoveryKey(), recoveryKey);
         expect(t.journal.clock.deviceId, newDeviceId);
+      },
+    );
+
+    test(
+      'a restore that fails for another reason is not a wrong key',
+      () async {
+        final t = await TestJournal.create();
+        final recoveryKey = t.journal.recoveryKey();
+        await t.journal.close();
+        final key = t.vault.key;
+        t.vault.key = null;
+        // Something in the way of the media folder: not the key's fault.
+        final mediaDir = Directory('${t.root.path}/media');
+        await mediaDir.delete(recursive: true);
+        final blocker = await File(mediaDir.path).create();
+
+        await expectLater(
+          Journal.restore(
+            root: t.root,
+            sodium: t.sodium,
+            vault: t.vault,
+            recoveryKey: recoveryKey,
+          ),
+          throwsA(isA<FileSystemException>()),
+        );
+        expect(t.vault.key, isNull);
+        await blocker.delete();
+        t.vault.key = key;
+        await t.open();
       },
     );
 

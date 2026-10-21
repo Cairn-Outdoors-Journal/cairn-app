@@ -56,8 +56,9 @@ class SecureStorageKeyVault implements LocalKeyVault {
   Future<void> delete() => _storage.delete(key: name);
 }
 
-/// The journal is on this phone but its key isn't: after a reset and
-/// restore on Android, or on a new phone. It opens with the recovery key.
+/// The journal is on this phone but no key here opens it: after a reset and
+/// restore on Android, on a new phone, or when a key left from an earlier
+/// install belongs to another journal. It opens with the recovery key.
 class JournalKeyMissing implements Exception {
   const JournalKeyMissing();
 
