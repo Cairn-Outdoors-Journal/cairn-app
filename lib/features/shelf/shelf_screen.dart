@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../clock.dart';
 import '../../data/database/database.dart';
@@ -101,7 +102,7 @@ class _Shelf extends ConsumerWidget {
                     excludeSemantics: true,
                     child: GestureDetector(
                       key: const Key('current-notebook'),
-                      onTap: () => _open(current),
+                      onTap: () => _open(context, current),
                       onLongPress: () => _actions(context, current, true),
                       child: NotebookCover(
                         notebook: current,
@@ -117,7 +118,7 @@ class _Shelf extends ConsumerWidget {
                   const SizedBox(height: 14),
                   _Grid(
                     notebooks: others,
-                    onOpen: _open,
+                    onOpen: (n) => _open(context, n),
                     onLongPress: (n) => _actions(context, n, false),
                   ),
                 ],
@@ -129,8 +130,11 @@ class _Shelf extends ConsumerWidget {
     );
   }
 
-  Future<void> _open(Notebook notebook) =>
-      journal.notebooks.markOpened(notebook.id);
+  /// Opens the notebook, which also makes it the current one.
+  Future<void> _open(BuildContext context, Notebook notebook) async {
+    await journal.notebooks.markOpened(notebook.id);
+    if (context.mounted) await context.push('/notebook/${notebook.id}');
+  }
 
   Future<void> _create(BuildContext context, DateTime today) async {
     final draft = await showNotebookSheet(context, today: today);

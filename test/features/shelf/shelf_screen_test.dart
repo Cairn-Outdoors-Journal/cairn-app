@@ -1,10 +1,9 @@
+import 'package:cairn/app.dart';
 import 'package:cairn/clock.dart';
 import 'package:cairn/data/database/database.dart';
 import 'package:cairn/data/journal.dart';
 import 'package:cairn/data/providers.dart';
-import 'package:cairn/design/theme.dart';
 import 'package:cairn/design/tokens.dart';
-import 'package:cairn/features/shelf/shelf_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,10 +22,7 @@ void main() {
           journalProvider.overrideWith((ref) async => journal),
           clockProvider.overrideWithValue(() => DateTime(2026, 6, 5)),
         ],
-        child: MaterialApp(
-          theme: cairnTheme(CairnColors.light, Brightness.light),
-          home: const ShelfScreen(),
-        ),
+        child: const CairnApp(),
       ),
     );
     await settle(tester);
@@ -75,8 +71,11 @@ void main() {
     expect(find.text('Day hikes'), findsOneWidget);
     expect(find.text('2025'), findsOneWidget);
 
-    // Opening the yearly notebook makes it current.
+    // Opening the yearly notebook opens it and makes it current.
     await tester.tap(find.text('Day hikes'));
+    await settle(tester);
+    expect(find.text('Today’s page opens here soon.'), findsOneWidget);
+    await tester.pageBack();
     await settle(tester);
     expect(find.text('DAY 47'), findsNothing);
     expect(find.text('PCT 2026'), findsOneWidget);
