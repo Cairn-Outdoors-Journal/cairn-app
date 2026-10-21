@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Keep schema snapshots for migration tests (drift_schemas/).
+          databases:
+            journal: lib/data/database/database.dart
+          store_date_time_values_as_text: false

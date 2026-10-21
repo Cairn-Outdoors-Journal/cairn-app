@@ -23,6 +23,11 @@ Running on devices and simulators also needs Xcode (iOS) and Android Studio (And
 | Test | `flutter test` |
 | Analyze | `flutter analyze` |
 | Format | `dart format lib test` |
+| Regenerate database code | `dart run build_runner build` |
+| Snapshot the schema after a change | `dart run drift_dev make-migrations` |
+| Inspect stored data on a device | `flutter run -t lib/dev/data_inspector/main.dart` |
+
+Android needs Android 12 (API 31) or later.
 
 CI runs the format check, analysis and tests on every pull request and on `main`
 ([.github/workflows/ci.yml](.github/workflows/ci.yml)). Release builds to TestFlight and Google Play
@@ -37,8 +42,23 @@ lib/
   router.dart          routes
   design/              colour tokens (ADR 0005) and themes
   features/            one folder per screen or flow (shelf/, notebook/, page/, pocket/, ...)
+  data/                the journal on the phone (ADR 0010)
+    journal.dart       opens everything; screens use its repositories
+    database/          drift tables and the encrypted SQLite database
+    repositories/      notebooks, pages, page items, pocket, location points
+    media/             photos and other files, encrypted with libsodium
+    keys/              master key in the Keychain / Keystore, recovery key, subkeys
+    sync/              hybrid logical clock and the change log
+  dev/                 developer tools (data inspector)
+  spikes/              test builds from stage 5
+drift_schemas/         schema snapshots for migration tests
 ```
 
-Planned, per the architecture: `data/` (SQLite via drift, media store, sync engine, storage
-providers) and `api/` (client generated from the pinned `openapi.json` of cairn-api). Native
-extensions (widget, Action button, quick-settings tile) will live under `ios/` and `android/`.
+Everything in `data/` is encrypted on the phone: the database with SQLite3MultipleCiphers (set in
+the `hooks:` section of `pubspec.yaml`) and each media file with XChaCha20-Poly1305. The keys come
+from the account master key, kept in the Keychain / Keystore and written out for the person as
+their recovery key. OS backups include the encrypted journal (on Android, cloud backup holds the
+database but not photos); where the key doesn't come back with it, the recovery key unlocks it.
+
+Planned: the sync engine and storage providers in `data/`, and `api/` (client generated from the
+pinned `openapi.json` of cairn-api).

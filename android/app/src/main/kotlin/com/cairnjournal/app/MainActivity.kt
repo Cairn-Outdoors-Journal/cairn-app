@@ -47,8 +47,8 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "requestAlways" -> {
-                        // From Android 11 this sends people to Settings to pick
-                        // "Allow all the time"; it needs "While using" first.
+                        // The manifest no longer declares background location
+                        // (ADR 0009), so Android ignores this request now.
                         requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), 2)
                         result.success(null)
                     }
