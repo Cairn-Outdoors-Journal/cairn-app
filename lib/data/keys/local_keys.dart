@@ -113,6 +113,10 @@ class LocalKeys {
         SecureKey.fromList(sodium, RecoveryKey.decode(sodium, recoveryKey)),
       );
 
+  /// A fresh key that is never stored, for in-memory test journals.
+  static LocalKeys generate(Sodium sodium) =>
+      LocalKeys._(sodium, sodium.crypto.kdf.keygen());
+
   final Sodium _sodium;
   final SecureKey _master;
 
