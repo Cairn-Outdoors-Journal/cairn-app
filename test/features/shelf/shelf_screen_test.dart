@@ -2,6 +2,7 @@ import 'package:cairn/app.dart';
 import 'package:cairn/clock.dart';
 import 'package:cairn/data/database/database.dart';
 import 'package:cairn/data/journal.dart';
+import 'package:cairn/data/keys/local_keys.dart';
 import 'package:cairn/data/providers.dart';
 import 'package:cairn/design/tokens.dart';
 import 'package:flutter/material.dart';
@@ -115,6 +116,22 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Delete'));
     await settle(tester);
     expect(find.text('Your shelf is empty.'), findsOneWidget);
+  });
+
+  testWidgets('a locked journal shows the unlock screen', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalProvider.overrideWith(
+            (ref) async => throw const JournalKeyMissing(),
+          ),
+        ],
+        child: const CairnApp(),
+      ),
+    );
+    await settle(tester);
+    expect(find.text('Unlock your journal'), findsOneWidget);
+    expect(find.byKey(const Key('recovery-key')), findsOneWidget);
   });
 }
 

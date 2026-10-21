@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../clock.dart';
 import '../../data/database/database.dart';
 import '../../data/journal.dart';
+import '../../data/keys/local_keys.dart';
 import '../../data/providers.dart';
 import '../../design/app_mark.dart';
 import '../../design/tokens.dart';
+import '../unlock/unlock_screen.dart';
 import 'notebook_actions.dart';
 import 'notebook_cover.dart';
 import 'notebook_sheet.dart';
@@ -25,6 +27,7 @@ class ShelfScreen extends ConsumerWidget {
       body: SafeArea(
         child: switch (journal) {
           AsyncData(value: final journal) => _Shelf(journal),
+          AsyncError(error: JournalKeyMissing()) => const UnlockForm(),
           AsyncError(:final error) => _Problem('$error'),
           _ => const Center(child: CircularProgressIndicator()),
         },
