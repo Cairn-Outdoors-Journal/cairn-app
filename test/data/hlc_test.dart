@@ -59,7 +59,24 @@ void main() {
     }
   });
 
-  test('the counter refuses to overflow', () {
-    expect(() => const Hlc(1, Hlc.maxCounter, a).tick(1), throwsStateError);
+  test('a full counter carries into the next millisecond', () {
+    final full = const Hlc(1000, Hlc.maxCounter, a);
+    final next = full.tick(900);
+    expect(next, const Hlc(1001, 0, a));
+    expect(next.compareTo(full), greaterThan(0));
+    expect(
+      full.receive(const Hlc(1000, Hlc.maxCounter, b), 900),
+      const Hlc(1001, 0, a),
+    );
+  });
+
+  test('a clock far behind the last stamp still writes, in order', () {
+    var stamp = const Hlc(5000, 0, a);
+    for (var i = 0; i < 3 * Hlc.maxCounter; i++) {
+      final next = stamp.tick(0);
+      expect(next.compareTo(stamp), greaterThan(0));
+      stamp = next;
+    }
+    expect(stamp.wallMs, 5002);
   });
 }

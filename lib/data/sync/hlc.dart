@@ -35,34 +35,27 @@ class Hlc implements Comparable<Hlc> {
   /// The stamp for the next change made on this device.
   Hlc tick(int nowMs) {
     if (nowMs > wallMs) return Hlc(nowMs, 0, deviceId);
-    return Hlc(wallMs, _next(counter), deviceId);
+    return _after(wallMs, counter);
   }
 
   /// The stamp after receiving [remote] from another device, so later local
   /// changes sort after everything this device has seen.
   Hlc receive(Hlc remote, int nowMs) {
     final wall = max(nowMs, max(wallMs, remote.wallMs));
-    final int count;
     if (wall == wallMs && wall == remote.wallMs) {
-      count = _next(max(counter, remote.counter));
-    } else if (wall == wallMs) {
-      count = _next(counter);
-    } else if (wall == remote.wallMs) {
-      count = _next(remote.counter);
-    } else {
-      count = 0;
+      return _after(wall, max(counter, remote.counter));
     }
-    return Hlc(wall, count, deviceId);
+    if (wall == wallMs) return _after(wall, counter);
+    if (wall == remote.wallMs) return _after(wall, remote.counter);
+    return Hlc(wall, 0, deviceId);
   }
 
-  static int _next(int counter) {
-    if (counter >= maxCounter) {
-      throw StateError(
-        'HLC counter overflow: over $maxCounter changes in 1 ms',
-      );
-    }
-    return counter + 1;
-  }
+  /// The next stamp after ([wall], [counter]). A full counter carries into
+  /// the next millisecond rather than failing: after the clock has been
+  /// ahead, writes must keep working until real time catches up.
+  Hlc _after(int wall, int counter) => counter < maxCounter
+      ? Hlc(wall, counter + 1, deviceId)
+      : Hlc(wall + 1, 0, deviceId);
 
   /// A string that sorts in the same order as [compareTo].
   String pack() =>
