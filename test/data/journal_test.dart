@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:cairn/data/database/database.dart';
 import 'package:cairn/data/journal.dart';
@@ -8,7 +7,9 @@ import 'package:cairn/data/keys/local_keys.dart';
 import 'package:cairn/data/repositories/location_points.dart';
 import 'package:cairn/data/repositories/page_items.dart';
 import 'package:cairn/data/sync/hlc.dart';
+import 'package:cairn/data/sync/record_writer.dart';
 import 'package:cairn/design/tokens.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers.dart';
@@ -357,6 +358,36 @@ void main() {
 
       await j.items.delete(second.id);
       expect(j.media.fileFor(photo.id).existsSync(), isFalse);
+    });
+
+    test('a stale copy cannot bring a deleted item back', () async {
+      final t = await TestJournal.create();
+      final j = t.journal;
+      final notebook = await j.notebooks.create(
+        title: 'N',
+        year: 2026,
+        cover: CoverCloth.forest,
+      );
+      final page = await j.pages.create(
+        notebookId: notebook.id,
+        day: '2026-06-01',
+      );
+      // An editor holds the item, then its page is deleted under it.
+      final held = await j.items.addText(pageId: page.id, body: 'Draft');
+      await j.pages.delete(page.id);
+      final before = (await j.unsentChanges()).length;
+
+      await expectLater(
+        j.items.update(held.copyWith(body: const Value('Autosaved'))),
+        throwsA(isA<RecordDeleted>()),
+      );
+      expect((await j.unsentChanges()).length, before);
+      final db = j.database;
+      final row = await (db.select(
+        db.pageItems,
+      )..where((i) => i.id.equals(held.id))).getSingle();
+      expect(row.deleted, isTrue);
+      expect(row.body, 'Draft');
     });
 
     test('deleting twice logs one delete', () async {

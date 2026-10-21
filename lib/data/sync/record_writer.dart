@@ -68,6 +68,18 @@ class JournalClock {
   }
 }
 
+/// A save was refused because the record has been deleted, for example an
+/// autosave from an editor still showing an item whose page was deleted.
+class RecordDeleted implements Exception {
+  const RecordDeleted(this.type, this.id);
+
+  final RecordType type;
+  final String id;
+
+  @override
+  String toString() => 'RecordDeleted: ${type.name} $id was deleted';
+}
+
 /// Saves and deletes synced records. Every write also adds an entry to the
 /// change log in the same transaction, so sync can later send exactly what
 /// changed (specs/sync-format.md).
@@ -78,6 +90,8 @@ class RecordWriter {
   final JournalClock clock;
 
   /// Inserts or replaces the record [build] returns for a fresh stamp.
+  /// Throws [RecordDeleted] instead of overwriting a deleted record, so a
+  /// stale copy can never undo a delete.
   Future<D> save<T extends Table, D extends DataClass>(
     RecordType type,
     TableInfo<T, D> table,
@@ -86,14 +100,25 @@ class RecordWriter {
     return db.transaction(() async {
       final hlc = await clock.next();
       final row = build(hlc);
-      await db.into(table).insertOnConflictUpdate(row as Insertable<D>);
       final json = row.toJson();
+      final id = json['id'] as String;
+      final stored = await db
+          .customSelect(
+            'SELECT deleted FROM "${table.actualTableName}" WHERE id = ?',
+            variables: [Variable.withString(id)],
+            readsFrom: {table},
+          )
+          .getSingleOrNull();
+      if (stored != null && stored.read<bool>('deleted')) {
+        throw RecordDeleted(type, id);
+      }
+      await db.into(table).insertOnConflictUpdate(row as Insertable<D>);
       await db
           .into(db.changes)
           .insert(
             ChangesCompanion.insert(
               recordType: type,
-              recordId: json['id'] as String,
+              recordId: id,
               hlc: hlc,
               op: ChangeOp.upsert,
               payload: Value(jsonEncode(json)),
