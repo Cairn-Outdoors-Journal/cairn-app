@@ -2,6 +2,7 @@ import 'package:cairn/data/database/database.dart';
 import 'package:cairn/design/theme.dart';
 import 'package:cairn/design/tokens.dart';
 import 'package:cairn/features/shelf/notebook_cover.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -63,5 +64,13 @@ void main() {
 
   test('a trip that has not started shows its start date', () {
     expect(coverStamp(notebook(), DateTime(2026, 4, 1)), 'STARTS 20 APR');
+  });
+
+  test('a custom colour replaces the cloth', () {
+    expect(coverColorOf(notebook()), CoverCloth.forest.color);
+    expect(
+      coverColorOf(notebook().copyWith(coverColor: const Value(0x8A3B6F))),
+      const Color(0xFF8A3B6F),
+    );
   });
 }

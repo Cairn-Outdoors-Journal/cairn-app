@@ -49,7 +49,7 @@ class _SmallCover extends StatelessWidget {
       height: NotebookCover.smallSize.height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: notebook.cover.color,
+        color: coverColorOf(notebook),
         borderRadius: const BorderRadius.horizontal(
           left: Radius.circular(2),
           right: Radius.circular(5),
@@ -99,7 +99,7 @@ class _LargeCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cloth = notebook.cover.color;
+    final cloth = coverColorOf(notebook);
     final ink = _CoverInk(cloth);
     final trail = notebook.trail;
     final trailName = notebook.trailName;
@@ -237,6 +237,13 @@ class _LargeCover extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The colour the notebook is shown in: the custom colour the person
+/// picked, or else its cloth.
+Color coverColorOf(Notebook notebook) {
+  final custom = notebook.coverColor;
+  return custom == null ? notebook.cover.color : Color(0xFF000000 | custom);
 }
 
 /// The stamped line on the large cover: the trip's day, when it starts, or
