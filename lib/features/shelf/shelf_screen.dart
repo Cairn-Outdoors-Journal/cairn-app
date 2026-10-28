@@ -206,23 +206,10 @@ class _Header extends StatelessWidget {
     return Container(
       height: 58,
       padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: palette.outline)),
-      ),
       child: Row(
         children: [
           const AppMark(),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Cairn',
-              style: TextStyle(
-                fontFamily: CairnFonts.writing,
-                fontSize: 21,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          const Spacer(),
           if (onNew != null)
             TextButton.icon(
               onPressed: onNew,
