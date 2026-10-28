@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/database/database.dart';
 import '../../design/tokens.dart';
-import 'notebook_sheet.dart';
+import 'cover_picker.dart';
 
 enum NotebookAction { changeCover, edit, makeCurrent, delete }
 
@@ -58,9 +58,12 @@ Future<NotebookAction?> showNotebookActions(
   );
 }
 
-/// Picks a new cloth for the cover.
-Future<CoverCloth?> showCoverPicker(BuildContext context, CoverCloth current) {
-  return showModalBottomSheet<CoverCloth>(
+/// Picks a new cloth, or a custom colour, for the cover.
+Future<CoverChoice?> showCoverPicker(
+  BuildContext context,
+  CoverChoice current,
+) {
+  return showModalBottomSheet<CoverChoice>(
     context: context,
     showDragHandle: true,
     builder: (context) => SafeArea(
@@ -79,9 +82,9 @@ Future<CoverCloth?> showCoverPicker(BuildContext context, CoverCloth current) {
               ),
             ),
             const SizedBox(height: 16),
-            CoverClothPicker(
+            CoverPicker(
               selected: current,
-              onSelected: (cloth) => Navigator.of(context).pop(cloth),
+              onSelected: (choice) => Navigator.of(context).pop(choice),
             ),
           ],
         ),

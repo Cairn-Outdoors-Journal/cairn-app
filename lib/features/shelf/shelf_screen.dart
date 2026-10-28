@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import '../../data/providers.dart';
 import '../../design/app_mark.dart';
 import '../../design/tokens.dart';
 import '../unlock/unlock_screen.dart';
+import 'cover_picker.dart';
 import 'notebook_actions.dart';
 import 'notebook_cover.dart';
 import 'notebook_sheet.dart';
@@ -150,6 +152,7 @@ class _Shelf extends ConsumerWidget {
       title: draft.title,
       year: draft.year,
       cover: draft.cover,
+      coverColor: draft.coverColor,
       trail: draft.trail,
       trailName: draft.trailName,
       startDay: draft.startDay,
@@ -172,9 +175,15 @@ class _Shelf extends ConsumerWidget {
     final notebooks = journal.notebooks;
     switch (action) {
       case NotebookAction.changeCover:
-        final cloth = await showCoverPicker(context, notebook.cover);
-        if (cloth != null && cloth != notebook.cover) {
-          await notebooks.update(notebook.copyWith(cover: cloth));
+        final current = CoverChoice(notebook.cover, notebook.coverColor);
+        final choice = await showCoverPicker(context, current);
+        if (choice != null && choice != current) {
+          await notebooks.update(
+            notebook.copyWith(
+              cover: choice.cloth,
+              coverColor: Value(choice.custom),
+            ),
+          );
         }
       case NotebookAction.edit:
         final draft = await showNotebookSheet(

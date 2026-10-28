@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../data/database/database.dart';
 import '../../data/days.dart';
 import '../../design/tokens.dart';
+import 'cover_picker.dart';
 
 /// What the notebook sheet collects. The shelf saves it.
 @immutable
@@ -13,6 +14,7 @@ class NotebookDraft {
     required this.title,
     required this.year,
     required this.cover,
+    this.coverColor,
     this.trail,
     this.trailName,
     this.startDay,
@@ -31,6 +33,7 @@ class NotebookDraft {
     title: notebook.title,
     year: notebook.year,
     cover: notebook.cover,
+    coverColor: notebook.coverColor,
     trail: notebook.trail,
     trailName: notebook.trailName,
     startDay: notebook.startDay,
@@ -42,6 +45,9 @@ class NotebookDraft {
   final String title;
   final int year;
   final CoverCloth cover;
+
+  /// A custom colour (0xRRGGBB) in place of [cover]'s cloth.
+  final int? coverColor;
   final String? trail;
   final String? trailName;
   final String? startDay;
@@ -53,6 +59,7 @@ class NotebookDraft {
     title: title,
     year: year,
     cover: cover,
+    coverColor: Value(coverColor),
     trail: Value(trail),
     trailName: Value(trailName),
     startDay: Value(startDay),
@@ -89,7 +96,7 @@ class NotebookForm extends StatefulWidget {
 class _NotebookFormState extends State<NotebookForm> {
   late NotebookKind _kind;
   late int _year;
-  late CoverCloth _cover;
+  late CoverChoice _cover;
   late final TextEditingController _title;
   late final TextEditingController _trail;
   late final TextEditingController _trailName;
@@ -104,7 +111,7 @@ class _NotebookFormState extends State<NotebookForm> {
     final draft = widget.initial ?? NotebookDraft.fresh(widget.today);
     _kind = draft.kind;
     _year = draft.year;
-    _cover = draft.cover;
+    _cover = CoverChoice(draft.cover, draft.coverColor);
     _title = TextEditingController(text: draft.title);
     _trail = TextEditingController(text: draft.trail ?? '');
     _trailName = TextEditingController(text: draft.trailName ?? '');
@@ -163,7 +170,8 @@ class _NotebookFormState extends State<NotebookForm> {
             : trip
             ? widget.today.year
             : _year,
-        cover: _cover,
+        cover: _cover.cloth,
+        coverColor: _cover.custom,
         trail: trip ? optional(_trail) : null,
         trailName: trip ? optional(_trailName) : null,
         startDay: start,
@@ -280,9 +288,9 @@ class _NotebookFormState extends State<NotebookForm> {
             const SizedBox(height: 16),
             Text('Cover', style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
-            CoverClothPicker(
+            CoverPicker(
               selected: _cover,
-              onSelected: (cloth) => setState(() => _cover = cloth),
+              onSelected: (choice) => setState(() => _cover = choice),
             ),
             const SizedBox(height: 24),
             FilledButton(
@@ -311,57 +319,4 @@ class _Row extends StatelessWidget {
       child,
     ],
   );
-}
-
-/// The five cover cloths (ADR 0005) as swatches.
-class CoverClothPicker extends StatelessWidget {
-  const CoverClothPicker({
-    required this.selected,
-    required this.onSelected,
-    super.key,
-  });
-
-  final CoverCloth selected;
-  final ValueChanged<CoverCloth> onSelected;
-
-  static String label(CoverCloth cloth) => switch (cloth) {
-    CoverCloth.waxedCanvas => 'Waxed canvas',
-    CoverCloth.forest => 'Forest',
-    CoverCloth.rust => 'Rust',
-    CoverCloth.slate => 'Slate',
-    CoverCloth.ochre => 'Ochre',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = Theme.of(context).colorScheme.onSurface;
-    return Wrap(
-      spacing: 12,
-      children: [
-        for (final cloth in CoverCloth.values)
-          Semantics(
-            button: true,
-            selected: cloth == selected,
-            label: label(cloth),
-            child: InkResponse(
-              key: Key('cloth-${cloth.name}'),
-              onTap: () => onSelected(cloth),
-              radius: 24,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: cloth.color,
-                  border: Border.all(
-                    color: cloth == selected ? ink : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 }
