@@ -102,4 +102,15 @@ void main() {
     await tester.pump();
     expect(host.choice, const CoverChoice(CoverCloth.rust));
   });
+
+  testWidgets('six cloths and the custom swatch share one row', (tester) async {
+    tester.view.physicalSize = const Size(360 * 3, 800 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await _pump(tester, const CoverChoice(CoverCloth.lake));
+    final first = tester.getTopLeft(find.byKey(const Key('cloth-waxedCanvas')));
+    final custom = tester.getTopLeft(find.byKey(const Key('cloth-custom')));
+    expect(custom.dy, first.dy);
+    expect(find.bySemanticsLabel('Lake'), findsOneWidget);
+  });
 }

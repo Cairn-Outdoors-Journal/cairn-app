@@ -53,36 +53,56 @@ class CoverPicker extends StatelessWidget {
     CoverCloth.rust => 'Rust',
     CoverCloth.slate => 'Slate',
     CoverCloth.ochre => 'Ochre',
+    CoverCloth.lake => 'Lake',
   };
 
   @override
   Widget build(BuildContext context) {
     final custom = selected.custom;
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        for (final cloth in CoverCloth.values)
-          _Swatch(
-            key: Key('cloth-${cloth.name}'),
-            label: label(cloth),
-            color: cloth.color,
-            selected: custom == null && cloth == selected.cloth,
-            onTap: () => onSelected(CoverChoice(cloth)),
-          ),
-        _Swatch(
-          key: const Key('cloth-custom'),
-          label: custom == null
-              ? 'Custom colour'
-              : 'Custom colour ${hexOf(custom)}',
-          color: custom == null ? null : selected.color,
-          selected: custom != null,
-          onTap: () async {
-            final picked = await showCustomColorDialog(context, selected.color);
-            if (picked != null) onSelected(CoverChoice(selected.cloth, picked));
-          },
-        ),
-      ],
+    // One row: the cloths and the custom swatch shrink on narrow phones
+    // rather than wrap.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const count = 7;
+        const gap = 12.0;
+        final size = ((constraints.maxWidth - gap * (count - 1)) / count).clamp(
+          28.0,
+          40.0,
+        );
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final cloth in CoverCloth.values)
+              _Swatch(
+                key: Key('cloth-${cloth.name}'),
+                label: label(cloth),
+                color: cloth.color,
+                size: size,
+                selected: custom == null && cloth == selected.cloth,
+                onTap: () => onSelected(CoverChoice(cloth)),
+              ),
+            _Swatch(
+              key: const Key('cloth-custom'),
+              label: custom == null
+                  ? 'Custom colour'
+                  : 'Custom colour ${hexOf(custom)}',
+              color: custom == null ? null : selected.color,
+              size: size,
+              selected: custom != null,
+              onTap: () async {
+                final picked = await showCustomColorDialog(
+                  context,
+                  selected.color,
+                );
+                if (picked != null) {
+                  onSelected(CoverChoice(selected.cloth, picked));
+                }
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -91,6 +111,7 @@ class _Swatch extends StatelessWidget {
   const _Swatch({
     required this.label,
     required this.color,
+    required this.size,
     required this.selected,
     required this.onTap,
     super.key,
@@ -100,6 +121,7 @@ class _Swatch extends StatelessWidget {
 
   /// Null draws the empty "pick a colour" swatch.
   final Color? color;
+  final double size;
   final bool selected;
   final VoidCallback onTap;
 
@@ -115,8 +137,8 @@ class _Swatch extends StatelessWidget {
         onTap: onTap,
         radius: 24,
         child: Container(
-          width: 40,
-          height: 40,
+          width: size,
+          height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: color,
