@@ -297,6 +297,9 @@ class _ChannelSlider extends StatelessWidget {
       Expanded(
         child: Slider(
           key: Key('custom-$label'),
+          // The default unfilled track is nearly the paper colour; a rule
+          // line shows how far each channel can go.
+          inactiveColor: Theme.of(context).colorScheme.outline,
           value: value.toDouble(),
           max: 255,
           divisions: 255,
