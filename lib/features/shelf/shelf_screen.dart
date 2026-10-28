@@ -58,7 +58,10 @@ class _Shelf extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Header(onNew: () => _create(context, today)),
+        // An empty shelf has its own "Start your first notebook" button.
+        _Header(
+          onNew: notebooks.isEmpty ? null : () => _create(context, today),
+        ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
@@ -194,7 +197,8 @@ class _Shelf extends ConsumerWidget {
 class _Header extends StatelessWidget {
   const _Header({required this.onNew});
 
-  final VoidCallback onNew;
+  /// Null hides "+ New".
+  final VoidCallback? onNew;
 
   @override
   Widget build(BuildContext context) {
@@ -219,19 +223,20 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          TextButton.icon(
-            onPressed: onNew,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(44, 44),
-              foregroundColor: palette.onSurface,
-              textStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+          if (onNew != null)
+            TextButton.icon(
+              onPressed: onNew,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                foregroundColor: palette.onSurface,
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New', semanticsLabel: 'New notebook'),
             ),
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('New', semanticsLabel: 'New notebook'),
-          ),
         ],
       ),
     );

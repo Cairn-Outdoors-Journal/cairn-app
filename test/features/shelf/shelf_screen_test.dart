@@ -32,6 +32,7 @@ void main() {
   testWidgets('an empty shelf starts the first notebook', (tester) async {
     await showShelf(tester);
     expect(find.text('Your shelf is empty.'), findsOneWidget);
+    expect(find.text('New'), findsNothing);
 
     await tester.tap(find.text('Start your first notebook'));
     await tester.pumpAndSettle();
@@ -40,6 +41,7 @@ void main() {
 
     expect(find.text('Day hikes'), findsOneWidget);
     expect(find.text('1 NOTEBOOK'), findsOneWidget);
+    expect(find.text('New'), findsOneWidget);
     expect(find.text('ON THE TRAIL'), findsOneWidget);
     expect(find.text('ON THE SHELF'), findsNothing);
   });
