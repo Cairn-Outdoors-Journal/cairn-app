@@ -31,7 +31,9 @@ void main() {
 
   testWidgets('an empty shelf starts the first notebook', (tester) async {
     await showShelf(tester);
-    expect(find.text('Your shelf is empty.'), findsOneWidget);
+    // An outline of the shelf to fill: the large place and a row of four.
+    expect(find.byKey(const Key('start-first-notebook')), findsOneWidget);
+    expect(find.byKey(const Key('empty-place-3')), findsOneWidget);
     expect(find.text('New'), findsNothing);
 
     await tester.tap(find.text('Start your first notebook'));
@@ -43,7 +45,9 @@ void main() {
     expect(find.text('1 NOTEBOOK'), findsOneWidget);
     expect(find.text('New'), findsOneWidget);
     expect(find.text('ON THE TRAIL'), findsOneWidget);
-    expect(find.text('ON THE SHELF'), findsNothing);
+    expect(find.byKey(const Key('start-first-notebook')), findsNothing);
+    // The rest of the shelf is still waiting to be filled.
+    expect(find.byKey(const Key('empty-place-3')), findsOneWidget);
   });
 
   testWidgets('the last-opened notebook is large; the rest are below', (
@@ -73,6 +77,9 @@ void main() {
     expect(find.text('ON THE SHELF'), findsOneWidget);
     expect(find.text('Day hikes'), findsOneWidget);
     expect(find.text('2025'), findsOneWidget);
+    // One notebook on the shelf leaves three empty places in the row.
+    expect(find.byKey(const Key('empty-place-2')), findsOneWidget);
+    expect(find.byKey(const Key('empty-place-3')), findsNothing);
 
     // Opening the yearly notebook opens it and makes it current.
     await tester.tap(find.text('Day hikes'));
@@ -117,7 +124,7 @@ void main() {
     expect(find.textContaining('Its 1 page'), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, 'Delete'));
     await settle(tester);
-    expect(find.text('Your shelf is empty.'), findsOneWidget);
+    expect(find.byKey(const Key('start-first-notebook')), findsOneWidget);
   });
 
   testWidgets('a locked journal shows the unlock screen', (tester) async {

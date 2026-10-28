@@ -12,6 +12,7 @@ import '../../design/app_mark.dart';
 import '../../design/tokens.dart';
 import '../unlock/unlock_screen.dart';
 import 'cover_picker.dart';
+import 'ghost_cover.dart';
 import 'notebook_actions.dart';
 import 'notebook_cover.dart';
 import 'notebook_sheet.dart';
@@ -96,11 +97,35 @@ class _Shelf extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              if (current == null)
-                _Empty(onStart: () => _create(context, today))
-              else ...[
-                const _SectionLabel('On the trail'),
-                const SizedBox(height: 14),
+              const _SectionLabel('On the trail'),
+              const SizedBox(height: 14),
+              if (current == null) ...[
+                Center(
+                  child: Semantics(
+                    button: true,
+                    label: 'Start your first notebook',
+                    excludeSemantics: true,
+                    child: GestureDetector(
+                      key: const Key('start-first-notebook'),
+                      onTap: () => _create(context, today),
+                      child: const Padding(
+                        // Room for the ribbon a real notebook has.
+                        padding: EdgeInsets.only(bottom: 22),
+                        child: GhostCover(
+                          size: CoverSize.large,
+                          label: 'Start your first notebook',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'A notebook can hold one trip, or a year of shorter hikes.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: palette.onSurfaceVariant),
+                ),
+              ] else
                 Center(
                   child: Semantics(
                     button: true,
@@ -120,17 +145,15 @@ class _Shelf extends ConsumerWidget {
                     ),
                   ),
                 ),
-                if (others.isNotEmpty) ...[
-                  const SizedBox(height: 22),
-                  const _SectionLabel('On the shelf'),
-                  const SizedBox(height: 14),
-                  _Grid(
-                    notebooks: others,
-                    onOpen: (n) => _open(context, n),
-                    onLongPress: (n) => _actions(context, n, false),
-                  ),
-                ],
-              ],
+              const SizedBox(height: 22),
+              const _SectionLabel('On the shelf'),
+              const SizedBox(height: 14),
+              _Grid(
+                notebooks: others,
+                onOpen: (n) => _open(context, n),
+                onLongPress: (n) => _actions(context, n, false),
+                onNew: () => _create(context, today),
+              ),
             ],
           ),
         ),
@@ -271,11 +294,15 @@ class _Grid extends StatelessWidget {
     required this.notebooks,
     required this.onOpen,
     required this.onLongPress,
+    required this.onNew,
   });
 
   final List<Notebook> notebooks;
   final ValueChanged<Notebook> onOpen;
   final ValueChanged<Notebook> onLongPress;
+
+  /// Tapping an empty place starts a new notebook.
+  final VoidCallback onNew;
 
   @override
   Widget build(BuildContext context) {
@@ -285,6 +312,11 @@ class _Grid extends StatelessWidget {
         const columns = 4;
         const gap = 10.0;
         final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        // Empty places finish the row, so the shelf always looks like a
+        // shelf; notebooks take them as they arrive.
+        final empty = notebooks.isEmpty
+            ? columns
+            : (columns - notebooks.length % columns) % columns;
         return Wrap(
           spacing: gap,
           runSpacing: 14,
@@ -333,46 +365,30 @@ class _Grid extends StatelessWidget {
                   ),
                 ),
               ),
+            for (var i = 0; i < empty; i++)
+              SizedBox(
+                width: width,
+                child: Semantics(
+                  button: true,
+                  label: 'New notebook',
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    key: Key('empty-place-$i'),
+                    onTap: onNew,
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GhostCover(size: CoverSize.small),
+                        SizedBox(height: 7),
+                        GhostLabel(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         );
       },
-    );
-  }
-}
-
-class _Empty extends StatelessWidget {
-  const _Empty({required this.onStart});
-
-  final VoidCallback onStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(top: 64),
-      child: Column(
-        children: [
-          Text(
-            'Your shelf is empty.',
-            style: TextStyle(
-              fontFamily: CairnFonts.writing,
-              fontSize: 20,
-              color: palette.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'A notebook can hold one trip, or a year of shorter hikes.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: palette.onSurfaceVariant),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: onStart,
-            child: const Text('Start your first notebook'),
-          ),
-        ],
-      ),
     );
   }
 }
