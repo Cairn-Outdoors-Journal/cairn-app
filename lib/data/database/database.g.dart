@@ -79,6 +79,17 @@ class $NotebooksTable extends Notebooks
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<CoverCloth>($NotebooksTable.$convertercover);
+  static const VerificationMeta _coverColorMeta = const VerificationMeta(
+    'coverColor',
+  );
+  @override
+  late final GeneratedColumn<int> coverColor = GeneratedColumn<int>(
+    'cover_color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _trailMeta = const VerificationMeta('trail');
   @override
   late final GeneratedColumn<String> trail = GeneratedColumn<String>(
@@ -130,6 +141,7 @@ class $NotebooksTable extends Notebooks
     title,
     year,
     cover,
+    coverColor,
     trail,
     trailName,
     startDay,
@@ -181,6 +193,12 @@ class $NotebooksTable extends Notebooks
       );
     } else if (isInserting) {
       context.missing(_yearMeta);
+    }
+    if (data.containsKey('cover_color')) {
+      context.handle(
+        _coverColorMeta,
+        coverColor.isAcceptableOrUnknown(data['cover_color']!, _coverColorMeta),
+      );
     }
     if (data.containsKey('trail')) {
       context.handle(
@@ -252,6 +270,10 @@ class $NotebooksTable extends Notebooks
           data['${effectivePrefix}cover'],
         )!,
       ),
+      coverColor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cover_color'],
+      ),
       trail: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}trail'],
@@ -300,6 +322,10 @@ class Notebook extends DataClass implements Insertable<Notebook> {
   final int year;
   final CoverCloth cover;
 
+  /// A colour the person picked instead of a cloth, as 0xRRGGBB (schema 3).
+  /// Null shows [cover].
+  final int? coverColor;
+
   /// Trips only: the trail or route ("Pacific Crest Trail"), the hiker's
   /// trail name ("Switchback"), and the first day (YYYY-MM-DD), which
   /// numbers the days.
@@ -315,6 +341,7 @@ class Notebook extends DataClass implements Insertable<Notebook> {
     required this.title,
     required this.year,
     required this.cover,
+    this.coverColor,
     this.trail,
     this.trailName,
     this.startDay,
@@ -338,6 +365,9 @@ class Notebook extends DataClass implements Insertable<Notebook> {
         $NotebooksTable.$convertercover.toSql(cover),
       );
     }
+    if (!nullToAbsent || coverColor != null) {
+      map['cover_color'] = Variable<int>(coverColor);
+    }
     if (!nullToAbsent || trail != null) {
       map['trail'] = Variable<String>(trail);
     }
@@ -360,6 +390,9 @@ class Notebook extends DataClass implements Insertable<Notebook> {
       title: Value(title),
       year: Value(year),
       cover: Value(cover),
+      coverColor: coverColor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coverColor),
       trail: trail == null && nullToAbsent
           ? const Value.absent()
           : Value(trail),
@@ -390,6 +423,7 @@ class Notebook extends DataClass implements Insertable<Notebook> {
       cover: $NotebooksTable.$convertercover.fromJson(
         serializer.fromJson<String>(json['cover']),
       ),
+      coverColor: serializer.fromJson<int?>(json['coverColor']),
       trail: serializer.fromJson<String?>(json['trail']),
       trailName: serializer.fromJson<String?>(json['trailName']),
       startDay: serializer.fromJson<String?>(json['startDay']),
@@ -411,6 +445,7 @@ class Notebook extends DataClass implements Insertable<Notebook> {
       'cover': serializer.toJson<String>(
         $NotebooksTable.$convertercover.toJson(cover),
       ),
+      'coverColor': serializer.toJson<int?>(coverColor),
       'trail': serializer.toJson<String?>(trail),
       'trailName': serializer.toJson<String?>(trailName),
       'startDay': serializer.toJson<String?>(startDay),
@@ -426,6 +461,7 @@ class Notebook extends DataClass implements Insertable<Notebook> {
     String? title,
     int? year,
     CoverCloth? cover,
+    Value<int?> coverColor = const Value.absent(),
     Value<String?> trail = const Value.absent(),
     Value<String?> trailName = const Value.absent(),
     Value<String?> startDay = const Value.absent(),
@@ -438,6 +474,7 @@ class Notebook extends DataClass implements Insertable<Notebook> {
     title: title ?? this.title,
     year: year ?? this.year,
     cover: cover ?? this.cover,
+    coverColor: coverColor.present ? coverColor.value : this.coverColor,
     trail: trail.present ? trail.value : this.trail,
     trailName: trailName.present ? trailName.value : this.trailName,
     startDay: startDay.present ? startDay.value : this.startDay,
@@ -452,6 +489,9 @@ class Notebook extends DataClass implements Insertable<Notebook> {
       title: data.title.present ? data.title.value : this.title,
       year: data.year.present ? data.year.value : this.year,
       cover: data.cover.present ? data.cover.value : this.cover,
+      coverColor: data.coverColor.present
+          ? data.coverColor.value
+          : this.coverColor,
       trail: data.trail.present ? data.trail.value : this.trail,
       trailName: data.trailName.present ? data.trailName.value : this.trailName,
       startDay: data.startDay.present ? data.startDay.value : this.startDay,
@@ -471,6 +511,7 @@ class Notebook extends DataClass implements Insertable<Notebook> {
           ..write('title: $title, ')
           ..write('year: $year, ')
           ..write('cover: $cover, ')
+          ..write('coverColor: $coverColor, ')
           ..write('trail: $trail, ')
           ..write('trailName: $trailName, ')
           ..write('startDay: $startDay, ')
@@ -488,6 +529,7 @@ class Notebook extends DataClass implements Insertable<Notebook> {
     title,
     year,
     cover,
+    coverColor,
     trail,
     trailName,
     startDay,
@@ -504,6 +546,7 @@ class Notebook extends DataClass implements Insertable<Notebook> {
           other.title == this.title &&
           other.year == this.year &&
           other.cover == this.cover &&
+          other.coverColor == this.coverColor &&
           other.trail == this.trail &&
           other.trailName == this.trailName &&
           other.startDay == this.startDay &&
@@ -518,6 +561,7 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
   final Value<String> title;
   final Value<int> year;
   final Value<CoverCloth> cover;
+  final Value<int?> coverColor;
   final Value<String?> trail;
   final Value<String?> trailName;
   final Value<String?> startDay;
@@ -531,6 +575,7 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
     this.title = const Value.absent(),
     this.year = const Value.absent(),
     this.cover = const Value.absent(),
+    this.coverColor = const Value.absent(),
     this.trail = const Value.absent(),
     this.trailName = const Value.absent(),
     this.startDay = const Value.absent(),
@@ -545,6 +590,7 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
     required String title,
     required int year,
     required CoverCloth cover,
+    this.coverColor = const Value.absent(),
     this.trail = const Value.absent(),
     this.trailName = const Value.absent(),
     this.startDay = const Value.absent(),
@@ -564,6 +610,7 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
     Expression<String>? title,
     Expression<int>? year,
     Expression<String>? cover,
+    Expression<int>? coverColor,
     Expression<String>? trail,
     Expression<String>? trailName,
     Expression<String>? startDay,
@@ -578,6 +625,7 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
       if (title != null) 'title': title,
       if (year != null) 'year': year,
       if (cover != null) 'cover': cover,
+      if (coverColor != null) 'cover_color': coverColor,
       if (trail != null) 'trail': trail,
       if (trailName != null) 'trail_name': trailName,
       if (startDay != null) 'start_day': startDay,
@@ -594,6 +642,7 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
     Value<String>? title,
     Value<int>? year,
     Value<CoverCloth>? cover,
+    Value<int?>? coverColor,
     Value<String?>? trail,
     Value<String?>? trailName,
     Value<String?>? startDay,
@@ -608,6 +657,7 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
       title: title ?? this.title,
       year: year ?? this.year,
       cover: cover ?? this.cover,
+      coverColor: coverColor ?? this.coverColor,
       trail: trail ?? this.trail,
       trailName: trailName ?? this.trailName,
       startDay: startDay ?? this.startDay,
@@ -644,6 +694,9 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
         $NotebooksTable.$convertercover.toSql(cover.value),
       );
     }
+    if (coverColor.present) {
+      map['cover_color'] = Variable<int>(coverColor.value);
+    }
     if (trail.present) {
       map['trail'] = Variable<String>(trail.value);
     }
@@ -672,6 +725,7 @@ class NotebooksCompanion extends UpdateCompanion<Notebook> {
           ..write('title: $title, ')
           ..write('year: $year, ')
           ..write('cover: $cover, ')
+          ..write('coverColor: $coverColor, ')
           ..write('trail: $trail, ')
           ..write('trailName: $trailName, ')
           ..write('startDay: $startDay, ')
@@ -4816,6 +4870,7 @@ typedef $$NotebooksTableCreateCompanionBuilder = NotebooksCompanion Function({
   required String title,
   required int year,
   required CoverCloth cover,
+  Value<int?> coverColor,
   Value<String?> trail,
   Value<String?> trailName,
   Value<String?> startDay,
@@ -4830,6 +4885,7 @@ typedef $$NotebooksTableUpdateCompanionBuilder = NotebooksCompanion Function({
   Value<String> title,
   Value<int> year,
   Value<CoverCloth> cover,
+  Value<int?> coverColor,
   Value<String?> trail,
   Value<String?> trailName,
   Value<String?> startDay,
@@ -4882,6 +4938,11 @@ class $$NotebooksTableFilterComposer
         column: $table.cover,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
+
+  ColumnFilters<int> get coverColor => $composableBuilder(
+    column: $table.coverColor,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get trail => $composableBuilder(
     column: $table.trail,
@@ -4948,6 +5009,11 @@ class $$NotebooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get coverColor => $composableBuilder(
+    column: $table.coverColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get trail => $composableBuilder(
     column: $table.trail,
     builder: (column) => ColumnOrderings(column),
@@ -4998,6 +5064,11 @@ class $$NotebooksTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<CoverCloth, String> get cover =>
       $composableBuilder(column: $table.cover, builder: (column) => column);
+
+  GeneratedColumn<int> get coverColor => $composableBuilder(
+    column: $table.coverColor,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get trail =>
       $composableBuilder(column: $table.trail, builder: (column) => column);
@@ -5052,6 +5123,7 @@ class $$NotebooksTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<int> year = const Value.absent(),
                 Value<CoverCloth> cover = const Value.absent(),
+                Value<int?> coverColor = const Value.absent(),
                 Value<String?> trail = const Value.absent(),
                 Value<String?> trailName = const Value.absent(),
                 Value<String?> startDay = const Value.absent(),
@@ -5065,6 +5137,7 @@ class $$NotebooksTableTableManager
                 title: title,
                 year: year,
                 cover: cover,
+                coverColor: coverColor,
                 trail: trail,
                 trailName: trailName,
                 startDay: startDay,
@@ -5080,6 +5153,7 @@ class $$NotebooksTableTableManager
                 required String title,
                 required int year,
                 required CoverCloth cover,
+                Value<int?> coverColor = const Value.absent(),
                 Value<String?> trail = const Value.absent(),
                 Value<String?> trailName = const Value.absent(),
                 Value<String?> startDay = const Value.absent(),
@@ -5093,6 +5167,7 @@ class $$NotebooksTableTableManager
                 title: title,
                 year: year,
                 cover: cover,
+                coverColor: coverColor,
                 trail: trail,
                 trailName: trailName,
                 startDay: startDay,

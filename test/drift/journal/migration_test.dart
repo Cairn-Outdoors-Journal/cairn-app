@@ -9,6 +9,7 @@ import 'generated/schema.dart';
 
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -88,6 +89,45 @@ void main() {
         expect(await newDb.select(newDb.notebooks).get(), [newNotebook]);
         expect(await newDb.select(newDb.pages).get(), [newPage]);
       },
+    );
+  });
+
+  test('v2 notebooks keep their cloth and get no custom colour', () async {
+    const oldNotebook = v2.NotebooksData(
+      id: 'n1',
+      hlc: '000001780000000-0000-device',
+      deleted: 0,
+      kind: 'trip',
+      title: 'PCT 2026',
+      year: 2026,
+      cover: 'forest',
+      trail: 'Pacific Crest Trail',
+      startDay: '2026-04-20',
+      createdAtMs: 1780000000000,
+    );
+    const newNotebook = v3.NotebooksData(
+      id: 'n1',
+      hlc: '000001780000000-0000-device',
+      deleted: 0,
+      kind: 'trip',
+      title: 'PCT 2026',
+      year: 2026,
+      cover: 'forest',
+      trail: 'Pacific Crest Trail',
+      startDay: '2026-04-20',
+      createdAtMs: 1780000000000,
+    );
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 2,
+      newVersion: 3,
+      createOld: v2.DatabaseAtV2.new,
+      createNew: v3.DatabaseAtV3.new,
+      openTestedDatabase: CairnDatabase.new,
+      createItems: (batch, oldDb) =>
+          batch.insertAll(oldDb.notebooks, [oldNotebook]),
+      validateItems: (newDb) async =>
+          expect(await newDb.select(newDb.notebooks).get(), [newNotebook]),
     );
   });
 }

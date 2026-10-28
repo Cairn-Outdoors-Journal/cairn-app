@@ -33,7 +33,7 @@ class CairnDatabase extends _$CairnDatabase {
   /// Bump with every schema change and add a step to [migration]; the
   /// schemas are kept in drift_schemas/journal/ for migration tests.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -46,6 +46,10 @@ class CairnDatabase extends _$CairnDatabase {
         await m.addColumn(notebooks, notebooks.trail);
         await m.addColumn(notebooks, notebooks.trailName);
         await m.addColumn(notebooks, notebooks.startDay);
+      },
+      from2To3: (m, schema) async {
+        // Custom cover colours.
+        await m.addColumn(schema.notebooks, schema.notebooks.coverColor);
       },
     ),
   );

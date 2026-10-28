@@ -49,6 +49,10 @@ class Notebooks extends Table with SyncedRecord {
 
   TextColumn get cover => textEnum<CoverCloth>()();
 
+  /// A colour the person picked instead of a cloth, as 0xRRGGBB (schema 3).
+  /// Null shows [cover].
+  IntColumn get coverColor => integer().nullable()();
+
   /// Trips only: the trail or route ("Pacific Crest Trail"), the hiker's
   /// trail name ("Switchback"), and the first day (YYYY-MM-DD), which
   /// numbers the days.
