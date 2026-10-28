@@ -66,15 +66,31 @@ void main() {
     expect(host.choice, const CoverChoice(CoverCloth.forest, 0x8A3B6F));
   });
 
-  testWidgets('moving a slider updates the hex field', (tester) async {
-    await _pump(tester, const CoverChoice(CoverCloth.forest, 0x000000));
+  testWidgets('tapping the wheel picks hue and saturation', (tester) async {
+    await _pump(tester, const CoverChoice(CoverCloth.forest, 0xFFFFFF));
     await tester.tap(find.byKey(const Key('cloth-custom')));
     await tester.pumpAndSettle();
-    final red = find.byKey(const Key('custom-R'));
-    await tester.tapAt(tester.getTopRight(red) - const Offset(1, -10));
+    // The right-hand edge of the wheel is fully saturated red.
+    final wheel = find.byKey(const Key('custom-wheel'));
+    final centre = tester.getCenter(wheel);
+    final radius = tester.getSize(wheel).width / 2;
+    await tester.tapAt(centre + Offset(radius - 1, 0));
     await tester.pump();
     final hex = tester.widget<TextField>(find.byKey(const Key('custom-hex')));
-    expect(hex.controller!.text, startsWith('FF'));
+    expect(hex.controller!.text, matches(RegExp(r'^FF0[0-9A-F]0[0-9A-F]$')));
+  });
+
+  testWidgets('the brightness bar darkens the colour', (tester) async {
+    await _pump(tester, const CoverChoice(CoverCloth.forest, 0xFF0000));
+    await tester.tap(find.byKey(const Key('cloth-custom')));
+    await tester.pumpAndSettle();
+    final bar = find.byKey(const Key('custom-brightness'));
+    await tester.tapAt(
+      tester.getTopLeft(bar) + Offset(1, tester.getSize(bar).height / 2),
+    );
+    await tester.pump();
+    final hex = tester.widget<TextField>(find.byKey(const Key('custom-hex')));
+    expect(hex.controller!.text, '000000');
   });
 
   testWidgets('a bad hex colour cannot be used', (tester) async {

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -160,8 +162,8 @@ class _Swatch extends StatelessWidget {
   }
 }
 
-/// RGB sliders and a hex field for a custom cover colour. Returns 0xRRGGBB,
-/// or null when cancelled.
+/// A colour wheel, a brightness bar and a hex field for a custom cover
+/// colour. Returns 0xRRGGBB, or null when cancelled.
 Future<int?> showCustomColorDialog(BuildContext context, Color initial) =>
     showDialog<int>(
       context: context,
@@ -178,18 +180,16 @@ class _CustomColorDialog extends StatefulWidget {
 }
 
 class _CustomColorDialogState extends State<_CustomColorDialog> {
-  late int _rgb;
+  late HSVColor _hsv;
   late final TextEditingController _hex;
   String? _hexError;
 
-  int get _r => (_rgb >> 16) & 0xFF;
-  int get _g => (_rgb >> 8) & 0xFF;
-  int get _b => _rgb & 0xFF;
+  int get _rgb => _hsv.toColor().toARGB32() & 0xFFFFFF;
 
   @override
   void initState() {
     super.initState();
-    _rgb = widget.initial.toARGB32() & 0xFFFFFF;
+    _hsv = HSVColor.fromColor(widget.initial);
     _hex = TextEditingController(text: hexOf(_rgb).substring(1));
   }
 
@@ -199,10 +199,10 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
     super.dispose();
   }
 
-  /// A slider moved: update the colour and the hex field together.
-  void _setChannel(int shift, double value) {
+  /// The wheel or the brightness bar moved: update the hex field too.
+  void _picked(HSVColor hsv) {
     setState(() {
-      _rgb = (_rgb & ~(0xFF << shift)) | (value.round() << shift);
+      _hsv = hsv;
       _hex.text = hexOf(_rgb).substring(1);
       _hexError = null;
     });
@@ -213,49 +213,51 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
     setState(() {
       if (rgb == null) {
         _hexError = text.trim().length < 6 ? null : 'Use 6 hex digits';
-      } else {
-        _rgb = rgb;
-        _hexError = null;
+        return;
       }
+      final typed = HSVColor.fromColor(Color(0xFF000000 | rgb));
+      // Greys have no hue; keep the wheel's so the marker doesn't jump.
+      _hsv = typed.saturation == 0 ? typed.withHue(_hsv.hue) : typed;
+      _hexError = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(0xFF000000 | _rgb);
     return AlertDialog(
       title: const Text('Custom colour'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              key: const Key('custom-preview'),
-              width: 72,
-              height: 97,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(2),
-                  right: Radius.circular(5),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ColorWheel(
+                  key: const Key('custom-wheel'),
+                  hsv: _hsv,
+                  onChanged: _picked,
                 ),
-              ),
+                const SizedBox(width: 16),
+                Container(
+                  key: const Key('custom-preview'),
+                  width: 40,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF000000 | _rgb),
+                    borderRadius: const BorderRadius.horizontal(
+                      left: Radius.circular(2),
+                      right: Radius.circular(4),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            _ChannelSlider(
-              label: 'R',
-              value: _r,
-              onChanged: (v) => _setChannel(16, v),
-            ),
-            _ChannelSlider(
-              label: 'G',
-              value: _g,
-              onChanged: (v) => _setChannel(8, v),
-            ),
-            _ChannelSlider(
-              label: 'B',
-              value: _b,
-              onChanged: (v) => _setChannel(0, v),
+            _BrightnessBar(
+              key: const Key('custom-brightness'),
+              hsv: _hsv,
+              onChanged: _picked,
             ),
             const SizedBox(height: 8),
             TextField(
@@ -295,48 +297,184 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
   }
 }
 
-class _ChannelSlider extends StatelessWidget {
-  const _ChannelSlider({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
+/// Hue around the wheel, saturation from the centre out. Tap or drag.
+class _ColorWheel extends StatelessWidget {
+  const _ColorWheel({required this.hsv, required this.onChanged, super.key});
 
-  final String label;
-  final int value;
-  final ValueChanged<double> onChanged;
+  static const diameter = 184.0;
+
+  final HSVColor hsv;
+  final ValueChanged<HSVColor> onChanged;
+
+  void _pick(Offset position) {
+    const radius = diameter / 2;
+    final offset = position - const Offset(radius, radius);
+    final hue = (offset.direction * 180 / math.pi + 360) % 360;
+    final saturation = (offset.distance / radius).clamp(0.0, 1.0);
+    onChanged(hsv.withHue(hue).withSaturation(saturation));
+  }
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(
-        width: 16,
-        child: Text(
-          label,
-          style: const TextStyle(fontFamily: CairnFonts.stamp),
-        ),
+  Widget build(BuildContext context) => Semantics(
+    label: 'Colour wheel',
+    value:
+        'hue ${hsv.hue.round()} degrees, '
+        'saturation ${(hsv.saturation * 100).round()}%',
+    child: GestureDetector(
+      onPanDown: (d) => _pick(d.localPosition),
+      onPanUpdate: (d) => _pick(d.localPosition),
+      child: CustomPaint(
+        size: const Size.square(diameter),
+        painter: _WheelPainter(hsv),
       ),
-      Expanded(
-        child: Slider(
-          key: Key('custom-$label'),
-          // The default unfilled track is nearly the paper colour; a rule
-          // line shows how far each channel can go.
-          inactiveColor: Theme.of(context).colorScheme.outline,
-          value: value.toDouble(),
-          max: 255,
-          divisions: 255,
-          label: '$value',
-          onChanged: onChanged,
-        ),
-      ),
-      SizedBox(
-        width: 32,
-        child: Text(
-          '$value',
-          textAlign: TextAlign.end,
-          style: const TextStyle(fontFamily: CairnFonts.stamp, fontSize: 12),
-        ),
-      ),
-    ],
+    ),
   );
+}
+
+class _WheelPainter extends CustomPainter {
+  const _WheelPainter(this.hsv);
+
+  final HSVColor hsv;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final radius = size.width / 2;
+    final centre = Offset(radius, radius);
+    final rect = Rect.fromCircle(center: centre, radius: radius);
+    canvas.drawCircle(
+      centre,
+      radius,
+      Paint()
+        ..shader = SweepGradient(
+          colors: [
+            for (var hue = 0; hue <= 360; hue += 60)
+              HSVColor.fromAHSV(1, hue % 360, 1, 1).toColor(),
+          ],
+        ).createShader(rect),
+    );
+    canvas.drawCircle(
+      centre,
+      radius,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Colors.white, Color(0x00FFFFFF)],
+        ).createShader(rect),
+    );
+    // Darken the whole wheel to the chosen brightness.
+    canvas.drawCircle(
+      centre,
+      radius,
+      Paint()..color = Colors.black.withValues(alpha: 1 - hsv.value),
+    );
+
+    final angle = hsv.hue * math.pi / 180;
+    final marker =
+        centre +
+        Offset(math.cos(angle), math.sin(angle)) * (hsv.saturation * radius);
+    canvas
+      ..drawCircle(marker, 10, Paint()..color = hsv.toColor())
+      ..drawCircle(
+        marker,
+        10,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = Colors.white,
+      )
+      ..drawCircle(
+        marker,
+        11.5,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..color = Colors.black.withValues(alpha: 0.4),
+      );
+  }
+
+  @override
+  bool shouldRepaint(_WheelPainter old) => old.hsv != hsv;
+}
+
+/// Brightness, from black to the wheel's colour at full brightness.
+class _BrightnessBar extends StatelessWidget {
+  const _BrightnessBar({required this.hsv, required this.onChanged, super.key});
+
+  final HSVColor hsv;
+  final ValueChanged<HSVColor> onChanged;
+
+  /// As wide as the wheel and preview above it. A fixed width, because the
+  /// dialog measures its content before laying it out.
+  static const width = _ColorWheel.diameter + 16 + 40;
+
+  @override
+  Widget build(BuildContext context) {
+    // The thumb's radius at each end counts as fully dark or fully bright,
+    // so both ends are easy to hit.
+    void pick(Offset position) => onChanged(
+      hsv.withValue(
+        ((position.dx - _thumbRadius) / (width - 2 * _thumbRadius)).clamp(
+          0.0,
+          1.0,
+        ),
+      ),
+    );
+    return Semantics(
+      label: 'Brightness',
+      value: '${(hsv.value * 100).round()}%',
+      child: GestureDetector(
+        onPanDown: (d) => pick(d.localPosition),
+        onPanUpdate: (d) => pick(d.localPosition),
+        child: CustomPaint(
+          size: const Size(width, 28),
+          painter: _BrightnessPainter(hsv),
+        ),
+      ),
+    );
+  }
+}
+
+const _thumbRadius = 10.0;
+
+class _BrightnessPainter extends CustomPainter {
+  const _BrightnessPainter(this.hsv);
+
+  final HSVColor hsv;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final track = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 6, size.width, size.height - 12),
+      const Radius.circular(8),
+    );
+    canvas.drawRRect(
+      track,
+      Paint()
+        ..shader = LinearGradient(
+          colors: [Colors.black, hsv.withValue(1).toColor()],
+        ).createShader(track.outerRect),
+    );
+    final thumb = Offset(
+      _thumbRadius + hsv.value * (size.width - 2 * _thumbRadius),
+      size.height / 2,
+    );
+    canvas
+      ..drawCircle(thumb, 10, Paint()..color = hsv.toColor())
+      ..drawCircle(
+        thumb,
+        10,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = Colors.white,
+      )
+      ..drawCircle(
+        thumb,
+        11.5,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..color = Colors.black.withValues(alpha: 0.4),
+      );
+  }
+
+  @override
+  bool shouldRepaint(_BrightnessPainter old) => old.hsv != hsv;
 }
