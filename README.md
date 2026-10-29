@@ -81,7 +81,7 @@ lib/
     database/          drift tables and the encrypted SQLite database
     repositories/      notebooks, pages, page items, pocket, location points
     media/             photos and other files, encrypted with libsodium
-    keys/              master key in the Keychain / Keystore, recovery key, subkeys
+    keys/              master key and its synced copy, recovery key, subkeys
     sync/              hybrid logical clock and the change log
   dev/                 developer tools (data inspector, sample shelf)
   spikes/              test builds from stage 5
@@ -90,9 +90,17 @@ drift_schemas/         schema snapshots; migration tests in test/drift/
 
 Everything in `data/` is encrypted on the phone: the database with SQLite3MultipleCiphers (set in
 the `hooks:` section of `pubspec.yaml`) and each media file with XChaCha20-Poly1305. The keys come
-from the account master key, kept in the Keychain / Keystore and written out for the person as
-their recovery key. OS backups include the encrypted journal (on Android, cloud backup holds the
-database but not photos); where the key doesn't come back with it, the recovery key unlocks it.
+from the account master key, kept in the Keychain / Keystore on this phone.
+
+- **Phone backups never carry the journal** (ADR 0011): iOS marks the journal folder excluded from
+  backup, and Android's `data_extraction_rules.xml` excludes everything. A new phone restores from
+  Cairn Cloud or, later, a Cairn backup file.
+- **The key travels on its own** (ADR 0012): a copy sits in iCloud Keychain (iOS) or Block Store
+  (Android, backed up only when Google can encrypt it end to end). A new phone of the same kind
+  picks it up; the recovery key is the fallback.
+
+To check: `flutter test integration_test -d <device>` round-trips the key copy on the simulator or
+emulator. A real move to a new phone needs real devices and accounts.
 
 Planned: the sync engine and storage providers in `data/`, and `api/` (client generated from the
 pinned `openapi.json` of cairn-api).
