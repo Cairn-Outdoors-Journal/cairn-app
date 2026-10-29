@@ -171,4 +171,30 @@ void main() {
     await tester.pump();
     expect(tester.widget<TextField>(field).controller!.text, 'AABBCC');
   });
+
+  testWidgets('the custom swatch shows it opens the colour picker', (
+    tester,
+  ) async {
+    await _pump(tester, const CoverChoice(CoverCloth.forest));
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('cloth-custom')),
+        matching: find.byIcon(Icons.add),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a custom swatch holding a colour shows an eyedropper', (
+    tester,
+  ) async {
+    await _pump(tester, const CoverChoice(CoverCloth.forest, 0xE07020));
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('cloth-custom')),
+        matching: find.byIcon(Icons.colorize),
+      ),
+      findsOneWidget,
+    );
+  });
 }

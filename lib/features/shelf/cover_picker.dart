@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../design/tokens.dart';
+import 'notebook_cover.dart';
 
 /// What a notebook's cover is made of: one of the six cloths (ADR 0005),
 /// or a colour the person picked, as 0xRRGGBB. The cloth is kept with a
@@ -92,6 +93,7 @@ class CoverPicker extends StatelessWidget {
               color: custom == null ? null : selected.color,
               size: size,
               selected: custom != null,
+              icon: custom == null ? Icons.add : Icons.colorize,
               onTap: () async {
                 final picked = await showCustomColorDialog(
                   context,
@@ -115,6 +117,7 @@ class _Swatch extends StatelessWidget {
     required this.color,
     required this.size,
     required this.selected,
+    this.icon,
     required this.onTap,
     super.key,
   });
@@ -125,6 +128,10 @@ class _Swatch extends StatelessWidget {
   final Color? color;
   final double size;
   final bool selected;
+
+  /// Marks the custom swatch, so it reads as "pick a colour" whether or not
+  /// it holds one yet.
+  final IconData? icon;
   final VoidCallback onTap;
 
   @override
@@ -153,9 +160,15 @@ class _Swatch extends StatelessWidget {
               width: 2,
             ),
           ),
-          child: color == null
-              ? Icon(Icons.add, size: 20, color: scheme.onSurfaceVariant)
-              : null,
+          child: icon == null
+              ? null
+              : Icon(
+                  icon,
+                  size: size / 2,
+                  color: color == null
+                      ? scheme.onSurfaceVariant
+                      : coverLetterColor(color!),
+                ),
         ),
       ),
     );
