@@ -15,6 +15,36 @@ flutter pub get
 
 Running on devices and simulators also needs Xcode (iOS) and Android Studio (Android).
 
+## Simulators
+
+The team uses an iPhone 18 Pro simulator and the `Medium_Phone_API_37.0` Android emulator; swap in
+your own names from `xcrun simctl list devices` and `emulator -list-avds`.
+
+```sh
+# iPhone simulator, with its window (Xcode 27 replaced the Simulator app with DeviceHub)
+xcrun simctl boot "iPhone 18 Pro"
+open /Applications/Xcode.app/Contents/Applications/DeviceHub.app
+
+# Android emulator, in the background
+emulator -avd Medium_Phone_API_37.0 > /dev/null 2>&1 &
+```
+
+Then run the app on one or both:
+
+```sh
+flutter run -d "iPhone 18 Pro"
+flutter run -d emulator-5554
+flutter run -d all
+```
+
+- In `flutter run`, `r` reloads code and `R` restarts the app. After a database schema change,
+  quit with `q` and run again.
+- Launching from the simulator's home screen opens the last build installed, which may be old.
+- The iPhone simulator shuts down when its DeviceHub window is closed; boot it again.
+- Light or dark mode: `xcrun simctl ui "iPhone 18 Pro" appearance dark` (or `light`) and
+  `adb shell cmd uimode night yes` (or `no`).
+- `flutter devices` lists what's running.
+
 ## Commands
 
 | Task | Command |
