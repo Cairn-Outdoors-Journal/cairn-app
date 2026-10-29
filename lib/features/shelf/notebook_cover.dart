@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../data/database/database.dart';
@@ -282,10 +284,25 @@ class _CoverInk {
   final Color italic;
   final Color title;
 
-  static bool _isPale(Color cloth) => cloth.computeLuminance() > 0.3;
+  static bool _isPale(Color cloth) => coverLetterColor(cloth) == _ink;
 
-  static Color _letter(Color cloth) =>
-      _isPale(cloth) ? const Color(0xFF1C1D1A) : const Color(0xFFF7F7F4);
+  static Color _letter(Color cloth) => coverLetterColor(cloth);
+}
+
+const _ink = Color(0xFF1C1D1A);
+const _paper = Color(0xFFF7F7F4);
+
+/// Ink or paper, whichever stands out more on [cover] (WCAG contrast). With
+/// any custom colour possible, a fixed brightness cut-off left mid-tones
+/// such as orange with hard-to-read light lettering.
+Color coverLetterColor(Color cover) {
+  final l = cover.computeLuminance();
+  double contrast(Color c) {
+    final lc = c.computeLuminance();
+    return (math.max(l, lc) + 0.05) / (math.min(l, lc) + 0.05);
+  }
+
+  return contrast(_ink) >= contrast(_paper) ? _ink : _paper;
 }
 
 /// The ridge cairn from the app icon, outlined, as pressed into a cover.
