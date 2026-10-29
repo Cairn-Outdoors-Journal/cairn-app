@@ -15,6 +15,36 @@ flutter pub get
 
 Running on devices and simulators also needs Xcode (iOS) and Android Studio (Android).
 
+## Simulators
+
+The team uses an iPhone 18 Pro simulator and the `Medium_Phone_API_37.0` Android emulator; swap in
+your own names from `xcrun simctl list devices` and `emulator -list-avds`.
+
+```sh
+# iPhone simulator, with its window (Xcode 27 replaced the Simulator app with DeviceHub)
+xcrun simctl boot "iPhone 18 Pro"
+open /Applications/Xcode.app/Contents/Applications/DeviceHub.app
+
+# Android emulator, in the background
+emulator -avd Medium_Phone_API_37.0 > /dev/null 2>&1 &
+```
+
+Then run the app on one or both:
+
+```sh
+flutter run -d "iPhone 18 Pro"
+flutter run -d emulator-5554
+flutter run -d all
+```
+
+- In `flutter run`, `r` reloads code and `R` restarts the app. After a database schema change,
+  quit with `q` and run again.
+- Launching from the simulator's home screen opens the last build installed, which may be old.
+- The iPhone simulator shuts down when its DeviceHub window is closed; boot it again.
+- Light or dark mode: `xcrun simctl ui "iPhone 18 Pro" appearance dark` (or `light`) and
+  `adb shell cmd uimode night yes` (or `no`).
+- `flutter devices` lists what's running.
+
 ## Commands
 
 | Task | Command |
@@ -26,6 +56,7 @@ Running on devices and simulators also needs Xcode (iOS) and Android Studio (And
 | Regenerate database code | `dart run build_runner build` |
 | Snapshot the schema after a change | `dart run drift_dev make-migrations` |
 | Inspect stored data on a device | `flutter run -t lib/dev/data_inspector/main.dart` |
+| Try the shelf with sample notebooks | `flutter run -t lib/dev/sample_shelf/main.dart` |
 
 Android needs Android 12 (API 31) or later.
 
@@ -41,7 +72,10 @@ lib/
   app.dart             MaterialApp, themes, router
   router.dart          routes
   design/              colour tokens (ADR 0005) and themes
-  features/            one folder per screen or flow (shelf/, notebook/, page/, pocket/, ...)
+  features/            one folder per screen or flow
+    shelf/             the bookshelf: covers, new/edit sheet, long-press actions
+    notebook/          an open notebook (placeholder until stage 7b)
+    unlock/            unlocking a restored journal with the recovery key
   data/                the journal on the phone (ADR 0010)
     journal.dart       opens everything; screens use its repositories
     database/          drift tables and the encrypted SQLite database
@@ -49,9 +83,9 @@ lib/
     media/             photos and other files, encrypted with libsodium
     keys/              master key in the Keychain / Keystore, recovery key, subkeys
     sync/              hybrid logical clock and the change log
-  dev/                 developer tools (data inspector)
+  dev/                 developer tools (data inspector, sample shelf)
   spikes/              test builds from stage 5
-drift_schemas/         schema snapshots for migration tests
+drift_schemas/         schema snapshots; migration tests in test/drift/
 ```
 
 Everything in `data/` is encrypted on the phone: the database with SQLite3MultipleCiphers (set in

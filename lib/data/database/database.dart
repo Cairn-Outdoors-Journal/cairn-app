@@ -8,6 +8,7 @@ import 'package:drift/native.dart';
 import 'package:drift/remote.dart' show DriftRemoteException;
 
 import '../../design/tokens.dart';
+import 'database.steps.dart';
 import 'tables.dart';
 
 export 'tables.dart';
@@ -32,11 +33,26 @@ class CairnDatabase extends _$CairnDatabase {
   /// Bump with every schema change and add a step to [migration]; the
   /// schemas are kept in drift_schemas/journal/ for migration tests.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
 
   @override
-  MigrationStrategy get migration =>
-      MigrationStrategy(onCreate: (m) => m.createAll());
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: stepByStep(
+      from1To2: (m, schema) async {
+        // Notebook type and trip details; existing notebooks become yearly.
+        final notebooks = schema.notebooks;
+        await m.addColumn(notebooks, notebooks.kind);
+        await m.addColumn(notebooks, notebooks.trail);
+        await m.addColumn(notebooks, notebooks.trailName);
+        await m.addColumn(notebooks, notebooks.startDay);
+      },
+      from2To3: (m, schema) async {
+        // Custom cover colours.
+        await m.addColumn(schema.notebooks, schema.notebooks.coverColor);
+      },
+    ),
+  );
 }
 
 /// Opens the journal database file, encrypted with SQLite3MultipleCiphers

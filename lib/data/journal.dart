@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sodium/sodium.dart';
 
@@ -101,6 +103,48 @@ class Journal {
     final database = CairnDatabase(
       openEncryptedDatabase(_databaseFile(root), keys.databaseKeyHex()),
     );
+    return _assemble(
+      database,
+      Directory(p.join(root.path, 'media')),
+      sodium,
+      keys,
+      now,
+      newDevice: newDevice,
+    );
+  }
+
+  /// A journal held in memory, for widget tests: the same repositories, but
+  /// no file and no background isolate, so it runs under the test clock.
+  /// Media still goes to [mediaDir].
+  @visibleForTesting
+  static Future<Journal> inMemory({
+    required Sodium sodium,
+    required Directory mediaDir,
+    int Function()? now,
+  }) => _assemble(
+    CairnDatabase(
+      DatabaseConnection(
+        NativeDatabase.memory(),
+        closeStreamsSynchronously: true,
+      ),
+    ),
+    mediaDir,
+    sodium,
+    // Both are test-only; the analyzer can't see that this caller is too.
+    // ignore: invalid_use_of_visible_for_testing_member
+    LocalKeys.generate(sodium),
+    now,
+    newDevice: false,
+  );
+
+  static Future<Journal> _assemble(
+    CairnDatabase database,
+    Directory mediaDir,
+    Sodium sodium,
+    LocalKeys keys,
+    int Function()? now, {
+    required bool newDevice,
+  }) async {
     try {
       final clock = await JournalClock.load(
         database,
@@ -108,7 +152,6 @@ class Journal {
         newDevice: newDevice,
       );
       final writer = RecordWriter(database, clock);
-      final mediaDir = Directory(p.join(root.path, 'media'));
       await mediaDir.create(recursive: true);
       final media = MediaStore(
         directory: mediaDir,

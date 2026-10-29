@@ -15,6 +15,7 @@ import '../../data/providers.dart';
 import '../../data/repositories/location_points.dart';
 import '../../data/repositories/page_items.dart';
 import '../../design/tokens.dart';
+import '../../features/unlock/unlock_screen.dart';
 
 class DataInspectorScreen extends ConsumerStatefulWidget {
   const DataInspectorScreen({super.key});
@@ -36,7 +37,7 @@ class _DataInspectorScreenState extends ConsumerState<DataInspectorScreen> {
       body: journal.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => error is JournalKeyMissing
-            ? const _UnlockForm()
+            ? const UnlockForm()
             : _Message('Could not open the journal: $error'),
         data: (journal) {
           if (_snapshot == null && _error == null) _refresh(journal);
@@ -245,59 +246,4 @@ class _Message extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Padding(padding: const EdgeInsets.all(24), child: Text(text));
-}
-
-/// Shown when the journal is here but its key isn't, as after a reset and
-/// restore: type the recovery key to unlock it.
-class _UnlockForm extends ConsumerStatefulWidget {
-  const _UnlockForm();
-
-  @override
-  ConsumerState<_UnlockForm> createState() => _UnlockFormState();
-}
-
-class _UnlockFormState extends ConsumerState<_UnlockForm> {
-  final _controller = TextEditingController();
-  String? _error;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _unlock() async {
-    try {
-      await unlockRestoredJournal(_controller.text);
-      ref.invalidate(journalProvider);
-    } on FormatException catch (error) {
-      setState(() => _error = error.message);
-    } on WrongRecoveryKey {
-      setState(() => _error = 'This key belongs to a different journal');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text(
-          'The journal is on this phone but its key is not. '
-          'Enter the recovery key to unlock it.',
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _controller,
-          maxLines: 3,
-          decoration: InputDecoration(
-            labelText: 'Recovery key',
-            errorText: _error,
-          ),
-        ),
-        const SizedBox(height: 12),
-        FilledButton(onPressed: _unlock, child: const Text('Unlock')),
-      ],
-    );
-  }
 }

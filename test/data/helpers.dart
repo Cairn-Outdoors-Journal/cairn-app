@@ -70,3 +70,12 @@ class TestJournal {
     return open();
   }
 }
+
+/// A journal in memory for widget tests. Create it in `setUp` and close it
+/// in `tearDown`; inside `testWidgets`, call it through `tester.runAsync`,
+/// since database work doesn't advance under the test's fake clock.
+Future<Journal> memoryJournal() async {
+  final media = await Directory.systemTemp.createTemp('cairn_media_');
+  addTearDown(() => media.delete(recursive: true));
+  return Journal.inMemory(sodium: await SodiumInit.init(), mediaDir: media);
+}

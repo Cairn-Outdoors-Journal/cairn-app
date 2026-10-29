@@ -93,9 +93,24 @@ enum CoverCloth {
   forest(Color(0xFF2F4A3A)),
   rust(Color(0xFFA2492B)),
   slate(Color(0xFF46525C)),
-  ochre(Color(0xFFC49A2C));
+  ochre(Color(0xFFC49A2C)),
+
+  /// Added with custom colours: the set had no blue.
+  lake(Color(0xFF2E5A73));
 
   const CoverCloth(this.color);
 
   final Color color;
+}
+
+/// The three typefaces (ADR 0005), bundled in assets/fonts.
+abstract final class CairnFonts {
+  /// The person's writing, and titles.
+  static const writing = 'Newsreader';
+
+  /// Labels and the interface.
+  static const label = 'Schibsted Grotesk';
+
+  /// Stamped data: dates, counts, coordinates.
+  static const stamp = 'Martian Mono';
 }

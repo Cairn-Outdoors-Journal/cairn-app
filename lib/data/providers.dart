@@ -19,12 +19,12 @@ final journalProvider = FutureProvider<Journal>((ref) async {
   );
   ref.onDispose(journal.close);
   return journal;
-}, retry: _noRetry);
+}, retry: noRetry);
 
 /// Riverpod retries failed providers by default. Opening the journal fails
 /// for reasons a retry can't fix, such as a missing key, and the screen
-/// must show that at once.
-Duration? _noRetry(int retryCount, Object error) => null;
+/// must show that at once; providers built on the journal use this too.
+Duration? noRetry(int retryCount, Object error) => null;
 
 /// Unlocks a journal restored from a backup with the person's recovery key
 /// and keeps the key on this phone. Throws [FormatException] for a typo and
