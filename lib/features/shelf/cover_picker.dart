@@ -208,18 +208,40 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
     });
   }
 
+  /// Follows the hex field only once it holds a full six-digit code, so a
+  /// code typed one character at a time doesn't flash through other
+  /// colours (at "2E5" the short form would mean #22EE55).
   void _typedHex(String text) {
-    final rgb = parseHexColor(text);
+    final digits = text.trim().replaceFirst('#', '');
     setState(() {
-      if (rgb == null) {
-        _hexError = text.trim().length < 6 ? null : 'Use 6 hex digits';
+      if (digits.length < 6) {
+        _hexError = null;
         return;
       }
-      final typed = HSVColor.fromColor(Color(0xFF000000 | rgb));
-      // Greys have no hue; keep the wheel's so the marker doesn't jump.
-      _hsv = typed.saturation == 0 ? typed.withHue(_hsv.hue) : typed;
+      final rgb = parseHexColor(digits);
+      if (rgb == null) {
+        _hexError = 'Use 6 hex digits';
+        return;
+      }
       _hexError = null;
+      _show(rgb);
     });
+  }
+
+  /// Done on the keyboard: the short "#abc" form counts from here.
+  void _submittedHex(String text) {
+    final rgb = parseHexColor(text);
+    if (rgb == null) return;
+    setState(() {
+      _show(rgb);
+      _hex.text = hexOf(rgb).substring(1);
+    });
+  }
+
+  void _show(int rgb) {
+    final typed = HSVColor.fromColor(Color(0xFF000000 | rgb));
+    // Greys have no hue; keep the wheel's so the marker doesn't jump.
+    _hsv = typed.saturation == 0 ? typed.withHue(_hsv.hue) : typed;
   }
 
   @override
@@ -268,6 +290,7 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
               key: const Key('custom-hex'),
               controller: _hex,
               onChanged: _typedHex,
+              onSubmitted: _submittedHex,
               autocorrect: false,
               enableSuggestions: false,
               textCapitalization: TextCapitalization.characters,
@@ -290,10 +313,12 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
+        // Only a real colour in the field can be used; the wheel always
+        // writes one there, so it stays enabled while picking.
         TextButton(
-          onPressed: _hexError == null
-              ? () => Navigator.of(context).pop(_rgb)
-              : null,
+          onPressed: parseHexColor(_hex.text) == null
+              ? null
+              : () => Navigator.of(context).pop(parseHexColor(_hex.text)),
           child: const Text('Use colour'),
         ),
       ],

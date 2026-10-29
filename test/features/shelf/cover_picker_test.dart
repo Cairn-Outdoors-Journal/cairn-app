@@ -129,4 +129,46 @@ void main() {
     expect(custom.dy, first.dy);
     expect(find.bySemanticsLabel('Lake'), findsOneWidget);
   });
+
+  testWidgets('a code typed one character at a time is only used once '
+      'complete', (tester) async {
+    final host = await _pump(tester, const CoverChoice(CoverCloth.forest));
+    await tester.tap(find.byKey(const Key('cloth-custom')));
+    await tester.pumpAndSettle();
+    Color preview() =>
+        (tester
+                    .widget<Container>(find.byKey(const Key('custom-preview')))
+                    .decoration!
+                as BoxDecoration)
+            .color!;
+    TextButton use() => tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Use colour'),
+    );
+    final before = preview();
+
+    final field = find.byKey(const Key('custom-hex'));
+    await tester.enterText(field, '2E5');
+    await tester.pump();
+    expect(preview(), before, reason: 'no jump to #22EE55');
+    await tester.enterText(field, '2E5A7');
+    await tester.pump();
+    expect(use().onPressed, isNull);
+    await tester.enterText(field, '2E5A73');
+    await tester.pump();
+    expect(preview(), const Color(0xFF2E5A73));
+    await tester.tap(find.text('Use colour'));
+    await tester.pumpAndSettle();
+    expect(host.choice, const CoverChoice(CoverCloth.forest, 0x2E5A73));
+  });
+
+  testWidgets('the short form counts when submitted', (tester) async {
+    await _pump(tester, const CoverChoice(CoverCloth.forest));
+    await tester.tap(find.byKey(const Key('cloth-custom')));
+    await tester.pumpAndSettle();
+    final field = find.byKey(const Key('custom-hex'));
+    await tester.enterText(field, 'abc');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(tester.widget<TextField>(field).controller!.text, 'AABBCC');
+  });
 }
