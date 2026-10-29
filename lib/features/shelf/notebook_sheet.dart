@@ -165,11 +165,9 @@ class _NotebookFormState extends State<NotebookForm> {
       NotebookDraft(
         kind: _kind,
         title: title,
-        year: start != null
-            ? parseDayKey(start).year
-            : trip
-            ? widget.today.year
-            : _year,
+        // A trip's year follows its first day. Without one it keeps the
+        // year it had: this year for a new notebook, its own when editing.
+        year: start != null ? parseDayKey(start).year : _year,
         cover: _cover.cloth,
         coverColor: _cover.custom,
         trail: trip ? optional(_trail) : null,

@@ -140,4 +140,27 @@ void main() {
     expect(harness.result!.trail, 'John Muir Trail');
     expect(harness.result!.year, 2025);
   });
+
+  testWidgets('editing a trip with no first day keeps its year', (
+    tester,
+  ) async {
+    // The harness opens the sheet with today in 2026.
+    final harness = await _open(
+      tester,
+      initial: const NotebookDraft(
+        kind: NotebookKind.trip,
+        title: 'Wonderland',
+        year: 2024,
+        cover: CoverCloth.rust,
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const Key('notebook-title')),
+      'Wonderland Trail',
+    );
+    await tester.ensureVisible(find.text('Save changes'));
+    await tester.tap(find.text('Save changes'));
+    await tester.pumpAndSettle();
+    expect(harness.result!.year, 2024);
+  });
 }
