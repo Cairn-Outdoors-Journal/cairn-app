@@ -48,7 +48,7 @@ class _Shelf extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notebooksValue = ref.watch(notebooksProvider);
     final currentValue = ref.watch(currentNotebookProvider);
-    final today = ref.watch(clockProvider)();
+    final today = ref.watch(todayProvider);
     // The two load separately. Drawing before both arrive would show "Start
     // your first notebook" above a shelf full of notebooks for a frame.
     final error = notebooksValue.error ?? currentValue.error;
