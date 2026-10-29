@@ -112,7 +112,14 @@ class RecordWriter {
       if (stored != null && stored.read<bool>('deleted')) {
         throw RecordDeleted(type, id);
       }
-      await db.into(table).insertOnConflictUpdate(row as Insertable<D>);
+      // Write every column, nulls included. Passing the data class itself
+      // leaves null fields out of the upsert, so clearing a field (a custom
+      // colour, a trail name) would keep the old value while the change log
+      // recorded the null.
+      final columns = (row as Insertable<D>).toColumns(false);
+      await db
+          .into(table)
+          .insertOnConflictUpdate(RawValuesInsertable<D>(columns));
       await db
           .into(db.changes)
           .insert(

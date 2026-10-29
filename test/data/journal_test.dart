@@ -421,6 +421,69 @@ void main() {
       expect(row.body, 'Draft');
     });
 
+    test('saving can clear a field back to empty', () async {
+      final t = await TestJournal.create();
+      final j = t.journal;
+      final trip = await j.notebooks.create(
+        kind: NotebookKind.trip,
+        title: 'PCT 2026',
+        year: 2026,
+        cover: CoverCloth.forest,
+        coverColor: 0xE07020,
+        trail: 'Pacific Crest Trail',
+        trailName: 'Switchback',
+        startDay: '2026-04-20',
+      );
+      await j.notebooks.update(
+        trip.copyWith(
+          kind: NotebookKind.year,
+          coverColor: const Value(null),
+          trail: const Value(null),
+          trailName: const Value(null),
+          startDay: const Value(null),
+        ),
+      );
+      final notebook = (await j.notebooks.find(trip.id))!;
+      expect(notebook.kind, NotebookKind.year);
+      expect(notebook.coverColor, isNull);
+      expect(notebook.trail, isNull);
+      expect(notebook.trailName, isNull);
+      expect(notebook.startDay, isNull);
+
+      // The same for other records: a page's place and a pocket item laid
+      // out and taken back off a page.
+      final page = await j.pages.create(notebookId: trip.id, day: '2026-06-01');
+      await j.pages.update(page.copyWith(place: const Value('Tuolumne')));
+      await j.pages.update(
+        (await j.pages.find(page.id))!.copyWith(place: const Value(null)),
+      );
+      expect((await j.pages.find(page.id))!.place, isNull);
+
+      final note = await j.pocket.add(
+        notebookId: trip.id,
+        kind: PocketItemKind.text,
+        body: 'Water at mile 702',
+      );
+      await j.pocket.placeOnPage(
+        note,
+        pageId: page.id,
+        placement: const Placement(0, 0, 10, 10),
+      );
+      final db = j.database;
+      final placed = await (db.select(
+        db.pocketItems,
+      )..where((i) => i.id.equals(note.id))).getSingle();
+      expect(placed.placedItemId, isNotNull);
+      await j.database.transaction(
+        () => RecordWriter(db, j.clock).save(
+          RecordType.pocketItem,
+          db.pocketItems,
+          (hlc) => placed.copyWith(hlc: hlc, placedItemId: const Value(null)),
+        ),
+      );
+      expect(await j.pocket.watchWaiting(trip.id).first, hasLength(1));
+    });
+
     test('deleting twice logs one delete', () async {
       final t = await TestJournal.create();
       final j = t.journal;
