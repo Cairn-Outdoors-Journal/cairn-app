@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- What Android backs up (ADR 0010). The journal is encrypted, and its key stays
-     in the Keystore, so after a restore it opens with the recovery key.
+<!-- Phone backups never carry the journal (ADR 0011): cloud users restore from
+     their cloud, everyone else from a Cairn backup file. Nothing else the app
+     keeps is worth restoring, so nothing is backed up or transferred.
 
-     Cloud backup is capped at 25 MB per app and skips an app entirely above that,
-     so it holds the database but not the photos. A phone-to-phone transfer has no
-     cap and carries everything. -->
+     The account master key travels separately, through Block Store (ADR 0012).
+     Backup stays allowed in the manifest because Block Store is built on the
+     same backup service. -->
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="file" path="journal/journal.db" />
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
     </cloud-backup>
     <device-transfer>
-        <include domain="file" path="journal/" />
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
     </device-transfer>
 </data-extraction-rules>
