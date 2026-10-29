@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:cairn/data/database/database.dart';
 import 'package:cairn/data/journal.dart';
 import 'package:cairn/data/keys/local_keys.dart';
+import 'package:cairn/data/keys/platform_key_copies.dart';
 import 'package:cairn/design/tokens.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -77,5 +78,20 @@ void main() {
 
     await vault.delete();
     await root.delete(recursive: true);
+  });
+  testWidgets('a new phone gets the key from its synced copy', (_) async {
+    final vault = appKeyVault(name: 'cairn.device_test_copy');
+    await vault.delete();
+    final key = Uint8List.fromList(List.generate(32, (i) => i * 7 % 256));
+    await vault.write(key);
+    expect(await vault.copy.read(), key);
+
+    // A new phone: the copy is there, nothing else is.
+    await vault.device.delete();
+    expect(await vault.read(), key);
+    expect(await vault.device.read(), key);
+
+    await vault.delete();
+    expect(await vault.copy.read(), isNull);
   });
 }
