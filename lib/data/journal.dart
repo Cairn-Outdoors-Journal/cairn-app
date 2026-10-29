@@ -130,6 +130,8 @@ class Journal {
     ),
     mediaDir,
     sodium,
+    // Both are test-only; the analyzer can't see that this caller is too.
+    // ignore: invalid_use_of_visible_for_testing_member
     LocalKeys.generate(sodium),
     now,
     newDevice: false,

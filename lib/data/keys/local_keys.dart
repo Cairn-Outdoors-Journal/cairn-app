@@ -114,6 +114,7 @@ class LocalKeys {
       );
 
   /// A fresh key that is never stored, for in-memory test journals.
+  @visibleForTesting
   static LocalKeys generate(Sodium sodium) =>
       LocalKeys._(sodium, sodium.crypto.kdf.keygen());
 

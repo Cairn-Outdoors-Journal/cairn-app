@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../design/tokens.dart';
 
-/// What a notebook's cover is made of: one of the five cloths (ADR 0005),
+/// What a notebook's cover is made of: one of the six cloths (ADR 0005),
 /// or a colour the person picked, as 0xRRGGBB. The cloth is kept with a
 /// custom colour so dropping the custom one goes back to it.
 @immutable
@@ -38,7 +38,7 @@ int? parseHexColor(String text) {
   return int.parse(hex, radix: 16);
 }
 
-/// The five cloths as swatches, then a sixth for a custom colour.
+/// The six cloths as swatches, then one for a custom colour.
 class CoverPicker extends StatelessWidget {
   const CoverPicker({
     required this.selected,
