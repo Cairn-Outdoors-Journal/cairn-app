@@ -197,4 +197,21 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('three digits are not used until Done expands them', (
+    tester,
+  ) async {
+    await _pump(tester, const CoverChoice(CoverCloth.forest));
+    await tester.tap(find.byKey(const Key('cloth-custom')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('custom-hex')), 'E07');
+    await tester.pump();
+    TextButton use() => tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Use colour'),
+    );
+    expect(use().onPressed, isNull);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(use().onPressed, isNotNull);
+  });
 }

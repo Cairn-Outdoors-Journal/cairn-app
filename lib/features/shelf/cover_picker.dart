@@ -251,6 +251,14 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
     });
   }
 
+  /// The colour in the field once it's a full six-digit code. The short
+  /// "#abc" form only counts after Done expands it, so the button never
+  /// saves a colour the preview isn't showing.
+  static int? _complete(String text) {
+    final digits = text.trim().replaceFirst('#', '');
+    return digits.length == 6 ? parseHexColor(digits) : null;
+  }
+
   void _show(int rgb) {
     final typed = HSVColor.fromColor(Color(0xFF000000 | rgb));
     // Greys have no hue; keep the wheel's so the marker doesn't jump.
@@ -329,9 +337,9 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
         // Only a real colour in the field can be used; the wheel always
         // writes one there, so it stays enabled while picking.
         TextButton(
-          onPressed: parseHexColor(_hex.text) == null
+          onPressed: _complete(_hex.text) == null
               ? null
-              : () => Navigator.of(context).pop(parseHexColor(_hex.text)),
+              : () => Navigator.of(context).pop(_complete(_hex.text)),
           child: const Text('Use colour'),
         ),
       ],
