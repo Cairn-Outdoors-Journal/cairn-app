@@ -8,6 +8,10 @@ import 'package:sodium/sodium.dart';
 
 import 'journal.dart';
 import 'keys/local_keys.dart';
+import 'keys/platform_key_copies.dart';
+
+/// Where the journal's key is kept, with its copy for the next phone.
+final _vault = appKeyVault();
 
 /// The journal, opened once for the app's lifetime. Fails with
 /// [JournalKeyMissing] after a restore that didn't bring the key back; then
@@ -16,7 +20,7 @@ final journalProvider = FutureProvider<Journal>((ref) async {
   final journal = await Journal.open(
     root: await _journalRoot(),
     sodium: await SodiumInit.init(),
-    vault: const SecureStorageKeyVault(),
+    vault: _vault,
   );
   ref.onDispose(journal.close);
   return journal;
@@ -34,7 +38,7 @@ Future<void> unlockRestoredJournal(String recoveryKey) async {
   final journal = await Journal.restore(
     root: await _journalRoot(),
     sodium: await SodiumInit.init(),
-    vault: const SecureStorageKeyVault(),
+    vault: _vault,
     recoveryKey: recoveryKey,
   );
   await journal.close();

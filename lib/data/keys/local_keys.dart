@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sodium/sodium.dart';
 
 import 'recovery_key.dart';
+import 'synced_key_vault.dart';
 
 /// Where the account master key is kept on this phone.
 abstract interface class LocalKeyVault {
@@ -14,13 +15,13 @@ abstract interface class LocalKeyVault {
   Future<void> delete();
 }
 
-/// The Keychain on iOS and the Keystore on Android (ADR 0010).
-///
-/// iOS restores the key when a backup goes back onto the same iPhone, but
-/// never copies it to another phone. Android never restores it. Anywhere
-/// else, the journal opens with the recovery key.
+/// The Keychain on iOS and the Keystore on Android, on this phone only
+/// (ADR 0010). The copy for the next phone is kept by [SyncedKeyVault]
+/// (ADR 0012).
 class SecureStorageKeyVault implements LocalKeyVault {
-  const SecureStorageKeyVault({this.name = 'cairn.account_master_key.v1'});
+  const SecureStorageKeyVault({this.name = defaultName});
+
+  static const defaultName = 'cairn.account_master_key.v1';
 
   /// The entry's name; tests use their own so they never touch the app's key.
   final String name;
