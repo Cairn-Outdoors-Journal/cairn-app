@@ -225,6 +225,10 @@ class _CustomColorDialogState extends State<_CustomColorDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      // The wheel row is a fixed 240 wide (the dialog measures its content
+      // before laying it out); the default 40 inset leaves only 232 on a
+      // 360-wide phone.
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: const Text('Custom colour'),
       content: SingleChildScrollView(
         child: Column(
