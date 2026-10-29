@@ -48,3 +48,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Keeps a copy of the journal key for the next phone (ADR 0012).
+    implementation("com.google.android.gms:play-services-auth-blockstore:16.4.0")
+}

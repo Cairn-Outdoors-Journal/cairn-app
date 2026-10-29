@@ -10,6 +10,7 @@ import android.os.Build
 import android.provider.Settings
 import com.cairnjournal.app.capture.CaptureTileService
 import com.cairnjournal.app.capture.LocationCapture
+import com.cairnjournal.app.keys.KeySyncChannel
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -18,6 +19,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        KeySyncChannel.register(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
         // Bridge for the stage 5b location spike (lib/spikes/location_capture).
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "cairn/location_spike")
             .setMethodCallHandler { call, result ->
