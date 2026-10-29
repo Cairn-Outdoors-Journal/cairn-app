@@ -46,12 +46,18 @@ class _Shelf extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notebooks = ref.watch(notebooksProvider).value;
-    final current = ref.watch(currentNotebookProvider).value;
+    final notebooksValue = ref.watch(notebooksProvider);
+    final currentValue = ref.watch(currentNotebookProvider);
     final today = ref.watch(clockProvider)();
-    if (notebooks == null) {
+    // The two load separately. Drawing before both arrive would show "Start
+    // your first notebook" above a shelf full of notebooks for a frame.
+    final error = notebooksValue.error ?? currentValue.error;
+    if (error != null) return _Problem('$error');
+    if (!notebooksValue.hasValue || !currentValue.hasValue) {
       return const Center(child: CircularProgressIndicator());
     }
+    final notebooks = notebooksValue.requireValue;
+    final current = currentValue.value;
     final others = [
       for (final n in notebooks)
         if (n.id != current?.id) n,

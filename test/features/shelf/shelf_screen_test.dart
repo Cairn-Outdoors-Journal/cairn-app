@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cairn/app.dart';
 import 'package:cairn/clock.dart';
 import 'package:cairn/data/database/database.dart';
@@ -5,6 +7,7 @@ import 'package:cairn/data/journal.dart';
 import 'package:cairn/data/keys/local_keys.dart';
 import 'package:cairn/data/providers.dart';
 import 'package:cairn/design/tokens.dart';
+import 'package:cairn/features/shelf/shelf_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -141,6 +144,56 @@ void main() {
     await settle(tester);
     expect(find.text('Unlock your journal'), findsOneWidget);
     expect(find.byKey(const Key('recovery-key')), findsOneWidget);
+  });
+
+  testWidgets('the shelf waits for both the list and the current notebook', (
+    tester,
+  ) async {
+    late Notebook notebook;
+    await tester.runAsync(() async {
+      notebook = await journal.notebooks.create(
+        title: 'Day hikes',
+        year: 2026,
+        cover: CoverCloth.forest,
+      );
+    });
+    final never = StreamController<Notebook?>();
+    addTearDown(never.close);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalProvider.overrideWith((ref) async => journal),
+          notebooksProvider.overrideWith((ref) => Stream.value([notebook])),
+          currentNotebookProvider.overrideWith((ref) => never.stream),
+        ],
+        child: const CairnApp(),
+      ),
+    );
+    // The spinner never settles; pump a few frames instead.
+    for (var i = 0; i < 5; i++) {
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byKey(const Key('start-first-notebook')), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('an error loading the shelf is shown, not hidden', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          journalProvider.overrideWith((ref) async => journal),
+          notebooksProvider.overrideWith(
+            (ref) => Stream.error(StateError('disk full')),
+          ),
+        ],
+        child: const CairnApp(),
+      ),
+    );
+    await settle(tester);
+    expect(find.textContaining('disk full'), findsOneWidget);
   });
 }
 
