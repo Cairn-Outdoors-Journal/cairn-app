@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -40,10 +41,15 @@ Future<void> unlockRestoredJournal(String recoveryKey) async {
 }
 
 /// The journal lives in Application Support (iOS) or the files folder
-/// (Android), which OS backups include (ADR 0010).
+/// (Android), kept out of phone backups (ADR 0011). On Android the backup
+/// rules in the manifest do that.
 Future<Directory> _journalRoot() async {
   final support = await getApplicationSupportDirectory();
   final root = Directory(p.join(support.path, 'journal'));
   await root.create(recursive: true);
+  if (Platform.isIOS) {
+    await const MethodChannel('cairn/storage')
+        .invokeMethod<void>('excludeFromBackup', root.path);
+  }
   return root;
 }
