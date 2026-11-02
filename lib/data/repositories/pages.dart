@@ -58,6 +58,30 @@ class PageRepository {
             ..limit(1))
           .getSingleOrNull();
 
+  /// The first page for [day], created with [template] if the day has none
+  /// yet. Two quick saves on a new day still make only one page.
+  Future<JournalPage> findOrCreate({
+    required String notebookId,
+    required String day,
+    String? template,
+  }) => _db.transaction(() async {
+    return await forDay(notebookId, day) ??
+        await create(notebookId: notebookId, day: day, template: template);
+  });
+
+  /// The pages for [day], first page first: a day that runs past one page
+  /// continues on the next.
+  Stream<List<JournalPage>> watchForDay(String notebookId, String day) =>
+      (_db.select(_db.pages)
+            ..where(
+              (p) =>
+                  p.notebookId.equals(notebookId) &
+                  p.day.equals(day) &
+                  p.deleted.not(),
+            )
+            ..orderBy([(p) => OrderingTerm.asc(p.createdAtMs)]))
+          .watch();
+
   /// The notebook's pages in day order.
   Stream<List<JournalPage>> watchForNotebook(String notebookId) =>
       (_db.select(_db.pages)

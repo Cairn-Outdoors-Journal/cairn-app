@@ -61,6 +61,34 @@ class PageItemRepository {
     placement: placement,
   );
 
+  /// Saves the writing in one section of a page (or the free writing when
+  /// [section] is null), adding its item the first time.
+  Future<PageItem> saveSectionText({
+    required String pageId,
+    required String? section,
+    required String body,
+  }) => _db.transaction(() async {
+    final existing =
+        await (_db.select(_db.pageItems)
+              ..where(
+                (i) =>
+                    i.pageId.equals(pageId) &
+                    i.kind.equalsValue(PageItemKind.text) &
+                    (section == null
+                        ? i.section.isNull()
+                        : i.section.equals(section)) &
+                    i.deleted.not(),
+              )
+              ..orderBy([(i) => OrderingTerm.asc(i.createdAtMs)])
+              ..limit(1))
+            .getSingleOrNull();
+    if (existing == null) {
+      return addText(pageId: pageId, body: body, section: section);
+    }
+    if (existing.body == body) return existing;
+    return update(existing.copyWith(body: Value(body)));
+  });
+
   /// Saves edits made with `copyWith`: new text, a moved or tilted photo.
   Future<PageItem> update(PageItem item) => _writer.save(
     RecordType.pageItem,
