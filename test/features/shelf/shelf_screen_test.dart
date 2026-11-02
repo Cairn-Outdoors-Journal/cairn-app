@@ -88,8 +88,8 @@ void main() {
     // Opening the yearly notebook opens it and makes it current.
     await tester.tap(find.text('Day hikes'));
     await settle(tester);
-    expect(find.text('Today’s page opens here soon.'), findsOneWidget);
-    await tester.pageBack();
+    expect(find.text('THE DAY'), findsOneWidget);
+    await tester.tap(find.text('Shelf'));
     await settle(tester);
     expect(find.text('DAY 47'), findsNothing);
     expect(find.text('PCT 2026'), findsOneWidget);
