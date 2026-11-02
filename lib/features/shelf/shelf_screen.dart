@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../clock.dart';
 import '../../data/database/database.dart';
+import '../../data/days.dart';
 import '../../data/journal.dart';
 import '../../data/keys/local_keys.dart';
 import '../../data/providers.dart';
 import '../../design/app_mark.dart';
 import '../../design/tokens.dart';
+import '../notebook/opening.dart';
 import '../unlock/unlock_screen.dart';
 import 'cover_picker.dart';
 import 'ghost_cover.dart';
@@ -141,7 +143,7 @@ class _Shelf extends ConsumerWidget {
                     excludeSemantics: true,
                     child: GestureDetector(
                       key: const Key('current-notebook'),
-                      onTap: () => _open(context, current),
+                      onTap: () => _open(context, current, today),
                       onLongPress: () => _actions(context, current, true),
                       child: NotebookCover(
                         notebook: current,
@@ -156,7 +158,7 @@ class _Shelf extends ConsumerWidget {
               const SizedBox(height: 14),
               _Grid(
                 notebooks: others,
-                onOpen: (n) => _open(context, n),
+                onOpen: (n) => _open(context, n, today),
                 onLongPress: (n) => _actions(context, n, false),
                 onNew: () => _create(context, today),
               ),
@@ -167,10 +169,20 @@ class _Shelf extends ConsumerWidget {
     );
   }
 
-  /// Opens the notebook, which also makes it the current one.
-  Future<void> _open(BuildContext context, Notebook notebook) async {
+  /// Opens the notebook, which also makes it the current one. The first
+  /// open of the day plays the book-opening in full.
+  Future<void> _open(
+    BuildContext context,
+    Notebook notebook,
+    DateTime today,
+  ) async {
+    final full = await journal.notebooks.firstOpenOn(dayKey(today));
     await journal.notebooks.markOpened(notebook.id);
-    if (context.mounted) await context.push('/notebook/${notebook.id}');
+    if (!context.mounted) return;
+    await context.push(
+      '/notebook/${notebook.id}',
+      extra: OpenNotebook(notebook, full: full),
+    );
   }
 
   Future<void> _create(BuildContext context, DateTime today) async {
