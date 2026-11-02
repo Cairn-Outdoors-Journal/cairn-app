@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import 'package:drift/drift.dart' show Value;
+
 import '../../data/database/database.dart';
 import '../../data/journal.dart';
 import '../../design/ribbon.dart';
@@ -26,6 +28,7 @@ class DayPage extends StatefulWidget {
     this.ribbon = false,
     this.focus,
     this.onContinued,
+    this.canSwitchTemplate = false,
     super.key,
   });
 
@@ -52,6 +55,10 @@ class DayPage extends StatefulWidget {
   /// Writing ran past the bottom of this page and continued on the page
   /// [pageId]; the cursor belongs there at [offset] in its free writing.
   final void Function(String pageId, int offset)? onContinued;
+
+  /// Offers three lines instead of the full page, and back, while nothing
+  /// is written: today's first page.
+  final bool canSwitchTemplate;
 
   @override
   State<DayPage> createState() => DayPageState();
@@ -109,8 +116,10 @@ class DayPageState extends State<DayPage> {
     super.didUpdateWidget(oldWidget);
     final id = widget.page?.id;
     if (id != null && id != _pageId) _attach(id);
+    // Only a change from outside, such as the stored page arriving, moves
+    // the template; a switch made here waits for the store to catch up.
     final template = _templateOf(widget);
-    if (template != _template) {
+    if (template != _templateOf(oldWidget) && template != _template) {
       _template = template;
       _buildFields();
     }
@@ -167,6 +176,7 @@ class DayPageState extends State<DayPage> {
         if (first || !editing) controller.text = body;
       }
       if (first) _applyFocus();
+      _showBlank();
       first = false;
     });
   }
@@ -290,7 +300,34 @@ class DayPageState extends State<DayPage> {
     );
   }
 
+  /// Nothing written in any section.
+  bool get _blank => _controllers.values.every((c) => c.text.trim().isEmpty);
+
+  /// Whether the page was blank when last drawn, which decides whether
+  /// the template switch shows.
+  bool _blankShown = true;
+
+  void _showBlank() {
+    final blank = _blank;
+    if (blank != _blankShown) setState(() => _blankShown = blank);
+  }
+
+  Future<void> _switchTemplate(PageTemplate template) async {
+    setState(() {
+      _template = template;
+      _buildFields();
+    });
+    final page = widget.page;
+    final id = _pageId;
+    if (page != null && id == page.id) {
+      await widget.journal.pages.update(
+        page.copyWith(template: Value(template.key)),
+      );
+    }
+  }
+
   void _changed(String? section) {
+    _showBlank();
     _lastEdited = (key: section);
     _dirty.add(section);
     _saveTimer?.cancel();
@@ -330,6 +367,44 @@ class DayPageState extends State<DayPage> {
         body: value,
       );
     }
+  }
+
+  List<Widget> _threeLinesIntro(ColorScheme palette) => [
+    const SizedBox(height: 18),
+    Text(
+      'Three lines',
+      style: PageText.writing(palette)
+          .copyWith(fontSize: 34, fontWeight: FontWeight.w500, height: 1.1),
+    ),
+    const SizedBox(height: 4),
+    Text(
+      'For nights when a full page is too much.',
+      style: PageText.writing(palette)
+          .copyWith(fontSize: 15, color: palette.onSurfaceVariant),
+    ),
+  ];
+
+  Widget _templateSwitch(ColorScheme palette) {
+    final toThree = _template == PageTemplate.day;
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          key: const Key('switch-template'),
+          onPressed: () => _switchTemplate(
+            toThree ? PageTemplate.threeLines : PageTemplate.day,
+          ),
+          style: TextButton.styleFrom(
+            foregroundColor: palette.onSurfaceVariant,
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(44, 44),
+            textStyle: const TextStyle(fontSize: 14),
+          ),
+          child: Text(toThree ? 'Three lines instead' : 'Write a full page'),
+        ),
+      ),
+    );
   }
 
   @override
@@ -380,7 +455,11 @@ class DayPageState extends State<DayPage> {
                         day: widget.day,
                         continued: _template == PageTemplate.continued,
                       ),
+                      if (_template == PageTemplate.threeLines)
+                        ..._threeLinesIntro(palette),
                       ...sections,
+                      if (widget.canSwitchTemplate && _blankShown)
+                        _templateSwitch(palette),
                     ],
                   ),
                 ),

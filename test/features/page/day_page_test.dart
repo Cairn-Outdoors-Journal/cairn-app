@@ -32,6 +32,7 @@ void main() {
     WidgetTester tester, {
     JournalPage? page,
     PageFocus? focus,
+    bool canSwitch = false,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -46,6 +47,7 @@ void main() {
               ribbon: true,
               focus: focus,
               onContinued: (id, offset) => continued.add((id, offset)),
+              canSwitchTemplate: canSwitch,
             ),
           ),
         ),
@@ -202,6 +204,73 @@ void main() {
       final second = (await tester.runAsync(() => freeWriting(day[1])))!;
       final third = (await tester.runAsync(() => freeWriting(day[2])))!;
       expect('$second $third', long);
+    });
+  });
+
+  group('three lines', () {
+    testWidgets('an empty page switches to three lines and back', (
+      tester,
+    ) async {
+      await show(tester, canSwitch: true);
+      await tester.tap(find.text('Three lines instead'));
+      await tester.pump();
+      expect(find.text('Three lines'), findsOneWidget);
+      for (final label in [
+        'BEST MOMENT',
+        'HARDEST MOMENT',
+        'ONE THING TO REMEMBER',
+      ]) {
+        expect(find.text(label), findsOneWidget);
+      }
+      expect(find.text('THE DAY'), findsNothing);
+
+      await tester.tap(find.text('Write a full page'));
+      await tester.pump();
+      expect(find.text('THE DAY'), findsOneWidget);
+    });
+
+    testWidgets('writing stores a three-line page and hides the switch', (
+      tester,
+    ) async {
+      await show(tester, canSwitch: true);
+      await tester.tap(find.text('Three lines instead'));
+      await tester.pump();
+      await tester.enterText(field('best'), 'Alpenglow on Banner Peak');
+      await tester.pump();
+      expect(find.byKey(const Key('switch-template')), findsNothing);
+      await tester.pump(DayPageState.saveDelay);
+      await settle(tester);
+      final page = await tester.runAsync(
+        () => journal.pages.forDay(trip.id, '2026-06-05'),
+      );
+      expect(page?.template, 'three_lines');
+      expect(await tester.runAsync(stored), {
+        'best': 'Alpenglow on Banner Peak',
+      });
+    });
+
+    testWidgets('a stored page that is still empty can switch', (tester) async {
+      late JournalPage page;
+      await tester.runAsync(() async {
+        page = await journal.pages.create(
+          notebookId: trip.id,
+          day: '2026-06-05',
+          template: 'day',
+        );
+      });
+      await show(tester, page: page, canSwitch: true);
+      await tester.tap(find.text('Three lines instead'));
+      await settle(tester);
+      expect(
+        (await tester.runAsync(() => journal.pages.find(page.id)))?.template,
+        'three_lines',
+      );
+      expect(find.text('Three lines'), findsOneWidget);
+    });
+
+    testWidgets('pages other than today offer no switch', (tester) async {
+      await show(tester);
+      expect(find.byKey(const Key('switch-template')), findsNothing);
     });
   });
 }
