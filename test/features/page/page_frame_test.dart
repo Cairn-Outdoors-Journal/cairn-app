@@ -22,15 +22,15 @@ void main() {
     tester,
   ) async {
     // A phone: the width decides.
-    expect(await frameIn(tester, const Size(360, 700)), const Size(360, 540));
+    expect(await frameIn(tester, const Size(300, 580)), const Size(300, 550));
     // A wide space: the height decides.
-    expect(await frameIn(tester, const Size(600, 324)), const Size(216, 324));
+    expect(await frameIn(tester, const Size(600, 396)), const Size(216, 396));
   });
 
   testWidgets('lays the page out at its own size in page points', (
     tester,
   ) async {
-    await frameIn(tester, const Size(360, 700));
+    await frameIn(tester, const Size(300, 580));
     final page = tester.renderObject<RenderBox>(find.byKey(const Key('page')));
     expect(page.size, PaperPage.size);
   });

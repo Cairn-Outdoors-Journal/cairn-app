@@ -7,9 +7,11 @@ import '../../design/tokens.dart';
 /// A page's size and margins, in page points (1/72 in).
 ///
 /// Pages are fixed-size and paged, not scrolled: what's on screen is what
-/// prints (CONCEPT). 6 × 9 in is a common trim for printed books.
+/// prints (CONCEPT). 6 × 11 in: close to a phone's shape below the top
+/// bar, so the page fills the screen, and the same on every phone so a
+/// page that's full on one is full on all.
 abstract final class PaperPage {
-  static const size = Size(432, 648);
+  static const size = Size(432, 792);
   static const margin = EdgeInsets.fromLTRB(28, 22, 28, 26);
   static final contentWidth = size.width - margin.horizontal;
 }

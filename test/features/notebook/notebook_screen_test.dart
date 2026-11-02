@@ -105,7 +105,7 @@ void main() {
     await open(tester);
     // The test font is much wider than Newsreader: this runs onto a third
     // page.
-    final words = [for (var i = 0; i < 100; i++) 'word$i'].join(' ');
+    final words = [for (var i = 0; i < 160; i++) 'word$i'].join(' ');
     await tester.enterText(field('the_day'), words);
     // Pump step by step: a focused field's cursor keeps drawing, so the
     // screen never settles.
@@ -139,7 +139,7 @@ void main() {
     expect(find.textContaining('CONTINUED'), findsOneWidget);
     final free = tester.widget<TextField>(field('free'));
     expect(free.focusNode?.hasFocus, isTrue);
-    expect(free.controller?.text, endsWith('word99'));
+    expect(free.controller?.text, endsWith('word159'));
   });
 
   testWidgets('the Days tab lists the days and jumps to one', (tester) async {
