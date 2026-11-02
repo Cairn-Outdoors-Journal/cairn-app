@@ -13,6 +13,9 @@ class NotebookRepository {
   /// syncs: each phone has its own current notebook.
   static const _currentKey = 'current_notebook_id';
 
+  /// The last day a notebook was opened with the full opening animation.
+  static const _openedKey = 'opened_animation_day';
+
   final RecordWriter _writer;
   final Future<void> Function() _removeDeletedMedia;
 
@@ -95,6 +98,22 @@ class NotebookRepository {
       .insertOnConflictUpdate(
         MetaCompanion.insert(key: _currentKey, value: id),
       );
+
+  /// True the first time this is asked on [day] (YYYY-MM-DD), false after:
+  /// the book-opening animation plays in full once a day (CONCEPT). Kept in
+  /// `meta`, per phone.
+  Future<bool> firstOpenOn(String day) => _db.transaction(() async {
+    final last = await (_db.select(
+      _db.meta,
+    )..where((m) => m.key.equals(_openedKey))).getSingleOrNull();
+    if (last?.value == day) return false;
+    await _db
+        .into(_db.meta)
+        .insertOnConflictUpdate(
+          MetaCompanion.insert(key: _openedKey, value: day),
+        );
+    return true;
+  });
 
   /// How many pages the notebook has, for the delete confirmation.
   Future<int> pageCount(String id) {

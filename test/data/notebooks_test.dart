@@ -86,6 +86,19 @@ void main() {
     expect(await j.notebooks.pageCount(notebook.id), 1);
   });
 
+  test('the full opening plays once a day', () async {
+    final t = await TestJournal.create();
+    final notebooks = t.journal.notebooks;
+    expect(await notebooks.firstOpenOn('2026-06-05'), isTrue);
+    expect(await notebooks.firstOpenOn('2026-06-05'), isFalse);
+    // It's kept on the phone, across restarts.
+    expect(
+      await (await t.reopen()).notebooks.firstOpenOn('2026-06-05'),
+      isFalse,
+    );
+    expect(await t.journal.notebooks.firstOpenOn('2026-06-06'), isTrue);
+  });
+
   group('days', () {
     test('day keys round-trip', () {
       expect(dayKey(DateTime(2026, 3, 9, 23, 59)), '2026-03-09');
