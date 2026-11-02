@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/database/database.dart';
 import '../../data/days.dart';
+import '../../design/ribbon.dart';
 import '../../design/tokens.dart';
 
 enum CoverSize { large, small }
@@ -232,7 +233,7 @@ class _LargeCover extends StatelessWidget {
             width: 12,
             height: 34,
             child: CustomPaint(
-              painter: _RibbonPainter(Theme.of(context).colorScheme.tertiary),
+              painter: RibbonPainter(Theme.of(context).colorScheme.tertiary),
             ),
           ),
         ],
@@ -347,25 +348,4 @@ class CairnMarkPainter extends CustomPainter {
   @override
   bool shouldRepaint(CairnMarkPainter old) =>
       old.color != color || old.strokeWidth != strokeWidth;
-}
-
-class _RibbonPainter extends CustomPainter {
-  const _RibbonPainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final notch = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width, size.height)
-      ..lineTo(size.width / 2, size.height * 0.8)
-      ..lineTo(0, size.height)
-      ..close();
-    canvas.drawPath(notch, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_RibbonPainter old) => old.color != color;
 }
