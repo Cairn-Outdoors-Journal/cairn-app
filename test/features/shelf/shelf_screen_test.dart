@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../data/helpers.dart';
+import '../../helpers/settle.dart';
 
 void main() {
   late Journal journal;
@@ -195,12 +196,4 @@ void main() {
     await settle(tester);
     expect(find.textContaining('disk full'), findsOneWidget);
   });
-}
-
-/// Lets database work started by the UI finish, then redraws.
-Future<void> settle(WidgetTester tester) async {
-  for (var i = 0; i < 5; i++) {
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    await tester.pumpAndSettle();
-  }
 }
