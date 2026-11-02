@@ -25,18 +25,27 @@ void main() {
   });
   tearDown(() => journal.close());
 
-  Future<void> show(WidgetTester tester, {JournalPage? page}) async {
+  final continued = <(String, int)>[];
+  setUp(continued.clear);
+
+  Future<void> show(
+    WidgetTester tester, {
+    JournalPage? page,
+    PageFocus? focus,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: SizedBox.fromSize(
-            size: PaperPage.size,
+          body: PageFrame(
             child: DayPage(
+              key: ValueKey(page?.id),
               journal: journal,
               notebook: trip,
               day: '2026-06-05',
               page: page,
               ribbon: true,
+              focus: focus,
+              onContinued: (id, offset) => continued.add((id, offset)),
             ),
           ),
         ),
@@ -126,5 +135,73 @@ void main() {
     });
     await show(tester, page: page);
     expect(find.text('Met Lemonhead at the lake.'), findsOneWidget);
+  });
+
+  group('a full page', () {
+    final words = [for (var i = 0; i < 400; i++) 'word$i'].join(' ');
+
+    Future<List<JournalPage>> pages() =>
+        journal.pages.watchForDay(trip.id, '2026-06-05').first;
+
+    Future<String?> freeWriting(JournalPage page) async {
+      final items = await journal.items.watchForPage(page.id).first;
+      return items.where((i) => i.section == null).firstOrNull?.body;
+    }
+
+    testWidgets('continues on a new page for the same day', (tester) async {
+      await show(tester);
+      await tester.enterText(field('the_day'), words);
+      await settle(tester);
+
+      final kept = tester.widget<TextField>(field('the_day')).controller!.text;
+      expect(kept.length, lessThan(words.length));
+      expect(kept, isNot(endsWith(' ')));
+
+      final day = (await tester.runAsync(pages))!;
+      expect(day, hasLength(2));
+      expect(day[1].template, 'continued');
+      final rest = (await tester.runAsync(() => freeWriting(day[1])))!;
+      // Nothing lost, and the break falls between words.
+      expect('$kept $rest', words);
+      expect(await tester.runAsync(stored), {'the_day': kept});
+      expect(continued.single, (day[1].id, rest.length));
+    });
+
+    testWidgets('a continued page that is full continues again', (
+      tester,
+    ) async {
+      final long = [for (var i = 0; i < 900; i++) 'w$i'].join(' ');
+      late JournalPage next;
+      await tester.runAsync(() async {
+        final first = await journal.pages.create(
+          notebookId: trip.id,
+          day: '2026-06-05',
+          template: 'day',
+        );
+        next = await journal.pages.create(
+          notebookId: trip.id,
+          day: '2026-06-05',
+          template: 'continued',
+        );
+        await journal.items.saveSectionText(
+          pageId: first.id,
+          section: 'the_day',
+          body: 'Start.',
+        );
+        await journal.items.saveSectionText(
+          pageId: next.id,
+          section: null,
+          body: long,
+        );
+      });
+      await show(tester, page: next, focus: const PageFocus(null, 3));
+      await settle(tester);
+
+      final day = (await tester.runAsync(pages))!;
+      expect(day, hasLength(3));
+      final second = (await tester.runAsync(() => freeWriting(day[1])))!;
+      final third = (await tester.runAsync(() => freeWriting(day[2])))!;
+      expect('$second $third', long);
+    });
   });
 }

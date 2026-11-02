@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../data/database/database.dart';
 import '../../data/journal.dart';
@@ -23,6 +24,8 @@ class DayPage extends StatefulWidget {
     required this.page,
     this.template = PageTemplate.day,
     this.ribbon = false,
+    this.focus,
+    this.onContinued,
     super.key,
   });
 
@@ -42,8 +45,24 @@ class DayPage extends StatefulWidget {
   /// Today's ribbon, on the first page of today.
   final bool ribbon;
 
+  /// Where to put the cursor once the page's writing has loaded: set on a
+  /// page that writing has just continued onto.
+  final PageFocus? focus;
+
+  /// Writing ran past the bottom of this page and continued on the page
+  /// [pageId]; the cursor belongs there at [offset] in its free writing.
+  final void Function(String pageId, int offset)? onContinued;
+
   @override
   State<DayPage> createState() => DayPageState();
+}
+
+/// A place in a page's writing.
+class PageFocus {
+  const PageFocus(this.section, this.offset);
+
+  final String? section;
+  final int offset;
 }
 
 class DayPageState extends State<DayPage> {
@@ -63,6 +82,13 @@ class DayPageState extends State<DayPage> {
   Timer? _saveTimer;
   Future<void> _saving = Future.value();
   late final AppLifecycleListener _lifecycle;
+
+  /// The section the person changed last, which is the one that gives up
+  /// its end when the page overflows. Null until a change; a record so the
+  /// free writing (key null) can be named too.
+  ({String? key})? _lastEdited;
+  bool _spilling = false;
+  bool _focusApplied = false;
 
   /// The stored page's id, once there is one.
   String? get pageId => _pageId;
@@ -140,11 +166,132 @@ class DayPageState extends State<DayPage> {
             (_focus[item.section]?.hasFocus ?? false);
         if (first || !editing) controller.text = body;
       }
+      if (first) _applyFocus();
       first = false;
     });
   }
 
+  /// Puts the cursor where [DayPage.focus] asks, once. The text that just
+  /// arrived may itself be too long, so it's checked like an edit.
+  void _applyFocus() {
+    final request = widget.focus;
+    if (request == null || _focusApplied) return;
+    final controller = _controllers[request.section];
+    if (controller == null) return;
+    _focusApplied = true;
+    _lastEdited = (key: request.section);
+    controller.selection = TextSelection.collapsed(
+      offset: request.offset.clamp(0, controller.text.length),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus[request.section]?.requestFocus();
+    });
+  }
+
+  /// Called with the height of the page's content after each layout.
+  /// Content taller than the page means the last edit ran past the bottom.
+  void _checkFit(double height) {
+    final available = PaperPage.size.height - PaperPage.margin.vertical;
+    final edited = _lastEdited;
+    if (height <= available + 0.5 || edited == null || _spilling) return;
+    _spilling = true;
+    final overflow = height - available;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (mounted) await _spill(edited.key, overflow);
+      } finally {
+        _lastEdited = null;
+        _spilling = false;
+      }
+    });
+  }
+
+  /// Keeps as much of [section]'s writing as fits, ending at a word, and
+  /// moves the rest to the start of the next page for this day.
+  Future<void> _spill(String? section, double overflow) async {
+    final controller = _controllers[section];
+    if (controller == null) return;
+    final rowLabel = _template.sections
+        .firstWhere((s) => s.key == section)
+        .rowLabel;
+    final style = PageText.writing(Theme.of(context).colorScheme);
+    final measure = TextPainter(
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      strutStyle: StrutStyle.fromTextStyle(style),
+    );
+    final width = PaperPage.contentWidth - (rowLabel == null ? 0 : 46);
+    double heightOf(String text) {
+      measure
+        ..text = TextSpan(text: text.isEmpty ? ' ' : text, style: style)
+        ..layout(maxWidth: width);
+      return measure.height;
+    }
+
+    final text = controller.text;
+    final allowed = heightOf(text) - overflow;
+    var low = 0;
+    var high = text.length;
+    while (low < high) {
+      final mid = (low + high + 1) ~/ 2;
+      if (heightOf(text.substring(0, mid)) <= allowed + 0.5) {
+        low = mid;
+      } else {
+        high = mid - 1;
+      }
+    }
+    measure.dispose();
+    var cut = low;
+    if (cut < text.length) {
+      final space = text.lastIndexOf(RegExp(r'\s'), cut);
+      if (space > 0) cut = space;
+    }
+    final keep = text.substring(0, cut).trimRight();
+    final rest = text.substring(cut).trimLeft();
+    controller.value = TextEditingValue(
+      text: keep,
+      selection: TextSelection.collapsed(offset: keep.length),
+    );
+    _dirty.add(section);
+    await save();
+    final id = _pageId;
+    if (rest.isEmpty || id == null) return;
+
+    final journal = widget.journal;
+    final next = await _nextPage(id);
+    final items = await journal.items.watchForPage(next.id).first;
+    final existing =
+        items
+            .where((i) => i.kind == PageItemKind.text && i.section == null)
+            .firstOrNull
+            ?.body ??
+        '';
+    await journal.items.saveSectionText(
+      pageId: next.id,
+      section: null,
+      body: existing.isEmpty ? rest : '$rest\n$existing',
+    );
+    if (mounted) _focus[section]?.unfocus();
+    widget.onContinued?.call(next.id, rest.length);
+  }
+
+  /// The page after this one on the same day, made if there isn't one.
+  Future<JournalPage> _nextPage(String id) async {
+    final journal = widget.journal;
+    final pages = await journal.pages
+        .watchForDay(widget.notebook.id, widget.day)
+        .first;
+    final index = pages.indexWhere((p) => p.id == id);
+    if (index >= 0 && index + 1 < pages.length) return pages[index + 1];
+    return journal.pages.create(
+      notebookId: widget.notebook.id,
+      day: widget.day,
+      template: PageTemplate.continued.key,
+    );
+  }
+
   void _changed(String? section) {
+    _lastEdited = (key: section);
     _dirty.add(section);
     _saveTimer?.cancel();
     _saveTimer = Timer(saveDelay, save);
@@ -222,17 +369,20 @@ class DayPageState extends State<DayPage> {
               child: OverflowBox(
                 alignment: Alignment.topCenter,
                 maxHeight: double.infinity,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    StampedHeader(
-                      notebook: widget.notebook,
-                      day: widget.day,
-                      continued: _template == PageTemplate.continued,
-                    ),
-                    ...sections,
-                  ],
+                child: _HeightReporter(
+                  onLayout: _checkFit,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      StampedHeader(
+                        notebook: widget.notebook,
+                        day: widget.day,
+                        continued: _template == PageTemplate.continued,
+                      ),
+                      ...sections,
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -251,5 +401,34 @@ class DayPageState extends State<DayPage> {
         ],
       ),
     );
+  }
+}
+
+/// Reports its child's height after each layout.
+class _HeightReporter extends SingleChildRenderObjectWidget {
+  const _HeightReporter({required this.onLayout, super.child});
+
+  final ValueChanged<double> onLayout;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderHeightReporter(onLayout);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderHeightReporter renderObject,
+  ) => renderObject.onLayout = onLayout;
+}
+
+class _RenderHeightReporter extends RenderProxyBox {
+  _RenderHeightReporter(this.onLayout);
+
+  ValueChanged<double> onLayout;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    onLayout(size.height);
   }
 }
