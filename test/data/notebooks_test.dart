@@ -99,5 +99,10 @@ void main() {
       expect(dayOfTrip('2026-04-20', DateTime(2026, 6, 5)), 47);
       expect(dayOfTrip('2026-04-20', DateTime(2026, 4, 19)), 0);
     });
+
+    test('the header date names the weekday', () {
+      expect(formatDayWithWeekday('2026-08-12'), 'Wed 12 Aug 2026');
+      expect(formatDayWithWeekday('2026-11-01'), 'Sun 1 Nov 2026');
+    });
   });
 }

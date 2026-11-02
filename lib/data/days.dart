@@ -26,6 +26,14 @@ const shortMonths = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
+const shortWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/// "Wed 12 Aug 2026", as the page header stamps it.
+String formatDayWithWeekday(String key) {
+  final date = parseDayKey(key);
+  return '${shortWeekdays[date.weekday - 1]} ${formatDayKey(key)}';
+}
+
 /// "20 Apr 2026".
 String formatDayKey(String key) {
   final date = parseDayKey(key);
