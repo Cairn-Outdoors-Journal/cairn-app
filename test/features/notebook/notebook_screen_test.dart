@@ -142,6 +142,36 @@ void main() {
     expect(free.controller?.text, endsWith('word99'));
   });
 
+  testWidgets('the Days tab lists the days and jumps to one', (tester) async {
+    await tester.runAsync(() async {
+      final page = await journal.pages.create(
+        notebookId: trip.id,
+        day: '2026-05-30',
+        template: 'day',
+      );
+      await journal.items.saveSectionText(
+        pageId: page.id,
+        section: 'the_day',
+        body: 'Kearsarge Pass to Onion Valley.\nHitched to Bishop.',
+      );
+    });
+    await open(tester);
+    expect(find.text('DAY 47'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('days-tab')));
+    await settle(tester);
+    expect(find.text('Days'), findsOneWidget);
+    expect(find.text('TODAY'), findsOneWidget);
+    expect(find.text('Nothing written yet'), findsOneWidget);
+    expect(find.text('Kearsarge Pass to Onion Valley.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('day-2026-05-30')));
+    await settle(tester);
+    expect(find.text('Days'), findsNothing);
+    expect(find.text('DAY 41'), findsOneWidget);
+    expect(find.text('DAY 47'), findsNothing);
+  });
+
   testWidgets('back to the shelf', (tester) async {
     await open(tester);
     await tester.tap(find.text('Shelf'));

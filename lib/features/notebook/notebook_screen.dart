@@ -10,6 +10,7 @@ import '../../data/providers.dart';
 import '../page/day_page.dart';
 import '../page/page_frame.dart';
 import '../shelf/shelf_providers.dart';
+import 'days_sheet.dart';
 import 'notebook_providers.dart';
 
 /// An open notebook: its pages side by side, opened at today's (moodboard,
@@ -164,6 +165,20 @@ class _PagesState extends ConsumerState<_Pages> {
               );
             },
           ),
+        ),
+        DaysTab(
+          onTap: () async {
+            final index = await showDaysSheet(
+              context,
+              journal: widget.journal,
+              notebook: widget.notebook,
+              leaves: leaves,
+              today: today,
+            );
+            if (index != null && controller.hasClients) {
+              controller.jumpToPage(index);
+            }
+          },
         ),
       ],
     );
