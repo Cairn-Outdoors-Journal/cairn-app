@@ -44,6 +44,8 @@ flutter run -d all
 - Light or dark mode: `xcrun simctl ui "iPhone 18 Pro" appearance dark` (or `light`) and
   `adb shell cmd uimode night yes` (or `no`).
 - `flutter devices` lists what's running.
+- An emulator whose screen has gone to sleep draws nothing, so on-device tests wait forever. Keep
+  it awake while plugged in: `adb shell svc power stayon true`.
 
 ## Commands
 
@@ -74,7 +76,8 @@ lib/
   design/              colour tokens (ADR 0005) and themes
   features/            one folder per screen or flow
     shelf/             the bookshelf: covers, new/edit sheet, long-press actions
-    notebook/          an open notebook (placeholder until stage 7b)
+    notebook/          an open notebook: pages side by side, the Days tab, the opening animation
+    page/              a day page: fixed-size page, stamped header, templates, writing
     unlock/            unlocking a restored journal with the recovery key
   data/                the journal on the phone (ADR 0010)
     journal.dart       opens everything; screens use its repositories
@@ -93,6 +96,10 @@ the `hooks:` section of `pubspec.yaml`) and each media file with XChaCha20-Poly1
 from the account master key, kept in the Keychain / Keystore and written out for the person as
 their recovery key. OS backups include the encrypted journal (on Android, cloud backup holds the
 database but not photos); where the key doesn't come back with it, the recovery key unlocks it.
+
+Pages are a fixed 432 × 792 points (6 × 11 in) on every phone, scaled to fit the screen, so a
+page that's full on one phone is full on all. Writing that runs past the bottom continues on the
+next page for the same day. Today's page is stored only once something is written on it.
 
 Planned: the sync engine and storage providers in `data/`, and `api/` (client generated from the
 pinned `openapi.json` of cairn-api).
